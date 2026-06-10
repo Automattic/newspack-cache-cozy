@@ -82,7 +82,7 @@ class Cache_Cozy_Tick_Node extends Timer_Node {
 		$this->arguments = $args;
 		if ( '' === $args ) {
 			$this->set_timer();
-		} elseif ( preg_match( '/^[0-9]+$/', $args ) ) {
+		} elseif ( preg_match( '/^[1-9][0-9]*$/', $args ) ) {
 			// Numeric arg = warm-enqueue interval in seconds. Keep the efficient
 			// _router heartbeat hitchhike (null) — the debounce is the real cadence
 			// gate; the ~5s router poll is plenty of granularity.

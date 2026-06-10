@@ -8,7 +8,12 @@
 	"scripts": {
 		"release:archive": "./build-release.sh",
 		"fix:php": "phpcbf",
+		"fix:js": "true",
+		"fix:scss": "true",
+		"format": "true",
 		"lint:php": "phpcs",
+		"lint:js": "true",
+		"lint:scss": "true",
 		"lint:phpstan": "vendor/bin/phpstan analyse --memory-limit=1G --no-progress"
 	},
 	"devDependencies": {
