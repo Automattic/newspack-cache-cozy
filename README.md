@@ -39,7 +39,7 @@ The warmer is zero-config by default. For tuning:
 
 - **Cold groups**: define `NEWSPACK_CACHE_COZY_COLD_GROUPS` as an array of cache-group names whose reads must miss during the warm render. Defaults cover the Newspack block cache and transients.
 - **TLS verification**: define `NEWSPACK_CACHE_COZY_SSLVERIFY` as `false` for self-signed dev hosts.
-- **Edge-cache bypass auth**: if your page cache serves anonymous homepages from the edge, the loopback never reaches PHP. Define `NEWSPACK_CACHE_COZY_AUTH` as `user:app password`, or store the credential with the plugin option so it is encrypted at rest.
+- **Edge-cache bypass auth**: if your page cache serves anonymous homepages from the edge, the loopback never reaches PHP. Define `NEWSPACK_CACHE_COZY_AUTH` as `user:app password`, or store it encrypted at rest by running `bin/schedule-cache-cozy.sh` (it prompts for the credential and persists it via `\Newspack_Cache_Cozy\Cache_Cozy::store_auth()`). The constant wins when both are set.
 
 Example `wp-config.php` constants:
 
