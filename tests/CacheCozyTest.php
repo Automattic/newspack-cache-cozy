@@ -236,8 +236,9 @@ class CacheCozyTest extends TestCase {
 
 	public function test_sslverify_can_be_disabled_via_filter_for_self_signed_hosts(): void {
 		$GLOBALS['_wp_test_home_url'] = 'https://www.bendsource.com';
-		add_filter( 'newspack_cache_cozy_sslverify', static fn (): bool => false );
-
+		if ( ! defined( 'NEWSPACK_CACHE_COZY_SSLVERIFY' ) ) {
+			define( 'NEWSPACK_CACHE_COZY_SSLVERIFY', false );
+		}
 		Cache_Cozy::run_tick();
 
 		$this->assertFalse( $GLOBALS['_wp_test_remote_gets'][0]['args']['sslverify'] );
@@ -291,7 +292,7 @@ class CacheCozyTest extends TestCase {
 		// visitors read. determine_current_user is forced to 0, overriding any
 		// app-password auth the loopback's header would otherwise trigger.
 		$GLOBALS['wp_object_cache'] = $this->fake_object_cache();
-		$_GET['cache_cozy_warm']     = Cache_Cozy::secret();
+		$_GET['cache_cozy_warm']    = Cache_Cozy::secret();
 
 		Cache_Cozy::maybe_install_for_request();
 
@@ -307,7 +308,7 @@ class CacheCozyTest extends TestCase {
 	public function test_install_happens_on_warm_loopback_request(): void {
 		$GLOBALS['_wp_test_home_url'] = 'https://www.bendsource.com';
 		$GLOBALS['wp_object_cache']   = $this->fake_object_cache();
-		$_GET['cache_cozy_warm']       = Cache_Cozy::secret();
+		$_GET['cache_cozy_warm']      = Cache_Cozy::secret();
 
 		Cache_Cozy::maybe_install_for_request();
 
@@ -330,7 +331,7 @@ class CacheCozyTest extends TestCase {
 	public function test_warm_request_marks_worker_type_for_stats_exclusion(): void {
 		$GLOBALS['_wp_test_home_url'] = 'https://www.bendsource.com';
 		$GLOBALS['wp_object_cache']   = $this->fake_object_cache();
-		$_GET['cache_cozy_warm']       = Cache_Cozy::secret();
+		$_GET['cache_cozy_warm']      = Cache_Cozy::secret();
 
 		Cache_Cozy::maybe_install_for_request();
 
@@ -351,7 +352,7 @@ class CacheCozyTest extends TestCase {
 
 	public function test_warm_request_bypasses_password_protection(): void {
 		$GLOBALS['wp_object_cache'] = $this->fake_object_cache();
-		$_GET['cache_cozy_warm']     = Cache_Cozy::secret();
+		$_GET['cache_cozy_warm']    = Cache_Cozy::secret();
 
 		Cache_Cozy::maybe_install_for_request();
 
