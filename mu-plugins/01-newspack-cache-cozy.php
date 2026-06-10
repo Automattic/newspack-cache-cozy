@@ -37,6 +37,9 @@ class Cold_Read_Object_Cache {
 	/** @var array<int, string> Cold-group name prefixes (see is_cold). */
 	private array $cold;
 
+	/** @var array<string, array<string, bool>> Now-warm group/key pairs. */
+	private array $warm = [];
+
 	/**
 	 * @param \WP_Object_Cache $real        The real object cache being wrapped.
 	 * @param array<string>    $cold_groups Cache groups whose reads must miss.
@@ -75,7 +78,7 @@ class Cold_Read_Object_Cache {
 	 * @return mixed
 	 */
 	public function get( $key, $group = '', $force = false, &$found = null ) {
-		if ( $this->is_cold( $group ) ) {
+		if ( $this->is_cold( $group ) && ! $this->is_warm( $key, $group ) ) {
 			$found = false;
 			return false;
 		}
@@ -83,7 +86,7 @@ class Cold_Read_Object_Cache {
 	}
 
 	/**
-	 * Multi-key read (WP 5.5+); misses every key on a cold group.
+	 * Multi-key read (WP 5.5+); misses still-cold keys on a cold group.
 	 *
 	 * @param array<int|string> $keys  Cache keys.
 	 * @param string            $group Cache group.
@@ -91,14 +94,66 @@ class Cold_Read_Object_Cache {
 	 * @return array<int|string, mixed>
 	 */
 	public function get_multiple( $keys, $group = '', $force = false ) {
-		if ( $this->is_cold( $group ) ) {
-			return \array_fill_keys( $keys, false );
+		if ( ! $this->is_cold( $group ) ) {
+			return $this->real->get_multiple( $keys, $group, $force );
 		}
-		return $this->real->get_multiple( $keys, $group, $force );
+
+		$results   = \array_fill_keys( $keys, false );
+		$warm_keys = [];
+
+		foreach ( $keys as $key ) {
+			if ( $this->is_warm( $key, $group ) ) {
+				$warm_keys[] = $key;
+			}
+		}
+
+		if ( [] === $warm_keys ) {
+			return $results;
+		}
+
+		foreach ( $this->real->get_multiple( $warm_keys, $group, $force ) as $key => $value ) {
+			$results[ $key ] = $value;
+		}
+
+		return $results;
 	}
 
 	/**
-	 * Write-through so the warm render's fresh entries replace the live ones in place.
+	 * Add-through; successful writes become readable during this warm render.
+	 *
+	 * @param int|string $key    Cache key.
+	 * @param mixed      $data   Value to store.
+	 * @param string     $group  Cache group.
+	 * @param int        $expire TTL in seconds.
+	 * @return bool
+	 */
+	public function add( $key, $data, $group = '', $expire = 0 ) {
+		$result = $this->real->add( $key, $data, $group, $expire );
+		if ( $result ) {
+			$this->set_warm( $key, $group );
+		}
+		return $result;
+	}
+
+	/**
+	 * Replace-through; successful writes become readable during this warm render.
+	 *
+	 * @param int|string $key    Cache key.
+	 * @param mixed      $data   Value to store.
+	 * @param string     $group  Cache group.
+	 * @param int        $expire TTL in seconds.
+	 * @return bool
+	 */
+	public function replace( $key, $data, $group = '', $expire = 0 ) {
+		$result = $this->real->replace( $key, $data, $group, $expire );
+		if ( $result ) {
+			$this->set_warm( $key, $group );
+		}
+		return $result;
+	}
+
+	/**
+	 * Set-through so the warm render's fresh entries replace the live ones in place.
 	 *
 	 * @param int|string $key    Cache key.
 	 * @param mixed      $data   Value to store.
@@ -107,11 +162,86 @@ class Cold_Read_Object_Cache {
 	 * @return bool
 	 */
 	public function set( $key, $data, $group = '', $expire = 0 ) {
-		return $this->real->set( $key, $data, $group, $expire );
+		$result = $this->real->set( $key, $data, $group, $expire );
+		if ( $result ) {
+			$this->set_warm( $key, $group );
+		}
+		return $result;
 	}
 
 	/**
-	 * All other methods (add/replace/delete/incr/decr/flush/add_global_groups/…) pass through.
+	 * Multi-set through; successful writes become readable during this warm render.
+	 *
+	 * @param array<int|string, mixed> $data   Cache key/value pairs.
+	 * @param string                   $group  Cache group.
+	 * @param int                      $expire TTL in seconds.
+	 * @return array<int|string, bool>
+	 */
+	public function set_multiple( array $data, $group = '', $expire = 0 ): array {
+		$results = $this->real->set_multiple( $data, $group, $expire );
+		$this->set_warm_results( $results, $group );
+		return $results;
+	}
+
+	/**
+	 * Multi-add through; successful writes become readable during this warm render.
+	 *
+	 * @param array<int|string, mixed> $data   Cache key/value pairs.
+	 * @param string                   $group  Cache group.
+	 * @param int                      $expire TTL in seconds.
+	 * @return array<int|string, bool>
+	 */
+	public function add_multiple( array $data, $group = '', $expire = 0 ): array {
+		$results = $this->real->add_multiple( $data, $group, $expire );
+		$this->set_warm_results( $results, $group );
+		return $results;
+	}
+
+	/**
+	 * Returns true after a group/key combination has been set().
+	 *
+	 * @param int|string $key   Cache key.
+	 * @param string     $group Cache group.
+	 * @return bool
+	 */
+	private function is_warm( $key, string $group ): bool {
+		if ( isset( $this->warm[$group] ) && isset( $this->warm[$group][(string) $key] ) ) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Marks a group/key combination warm.
+	 *
+	 * @param int|string $key   Cache key.
+	 * @param string     $group Cache group.
+	 * @return void
+	 */
+	private function set_warm( $key, string $group ): void {
+		if ( ! isset( $this->warm[$group] ) ) {
+			$this->warm[$group] = [];
+		}
+		$this->warm[$group][(string) $key] = true;
+	}
+
+	/**
+	 * Marks successful bulk write keys warm.
+	 *
+	 * @param array<int|string, bool> $results Per-key write results.
+	 * @param string                  $group   Cache group.
+	 * @return void
+	 */
+	private function set_warm_results( array $results, string $group ): void {
+		foreach ( $results as $key => $result ) {
+			if ( $result ) {
+				$this->set_warm( $key, $group );
+			}
+		}
+	}
+
+	/**
+	 * All other methods (delete/incr/decr/flush/add_global_groups/…) pass through.
 	 *
 	 * @param string       $name Method name.
 	 * @param array<mixed> $args Arguments.

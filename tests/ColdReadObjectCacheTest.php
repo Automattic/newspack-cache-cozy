@@ -34,6 +34,7 @@ class ColdReadObjectCacheTest extends TestCase {
 		return new #[\AllowDynamicProperties] class() {
 			public array $store    = [];
 			public array $deleted  = [];
+			public bool $fail_sets = false;
 			public function get( $key, $group = '', $force = false, &$found = null ) {
 				if ( isset( $this->store[ $group ][ $key ] ) ) {
 					$found = true;
@@ -42,9 +43,46 @@ class ColdReadObjectCacheTest extends TestCase {
 				$found = false;
 				return false;
 			}
+			public function get_multiple( $keys, $group = '', $force = false ) {
+				$results = [];
+				foreach ( $keys as $key ) {
+					$found           = null;
+					$results[ $key ] = $this->get( $key, $group, $force, $found );
+				}
+				return $results;
+			}
 			public function set( $key, $data, $group = '', $expire = 0 ) {
+				if ( $this->fail_sets ) {
+					return false;
+				}
 				$this->store[ $group ][ $key ] = $data;
 				return true;
+			}
+			public function add( $key, $data, $group = '', $expire = 0 ) {
+				if ( isset( $this->store[ $group ][ $key ] ) ) {
+					return false;
+				}
+				return $this->set( $key, $data, $group, $expire );
+			}
+			public function replace( $key, $data, $group = '', $expire = 0 ) {
+				if ( ! isset( $this->store[ $group ][ $key ] ) ) {
+					return false;
+				}
+				return $this->set( $key, $data, $group, $expire );
+			}
+			public function set_multiple( array $data, $group = '', $expire = 0 ) {
+				$results = [];
+				foreach ( $data as $key => $value ) {
+					$results[ $key ] = $this->set( $key, $value, $group, $expire );
+				}
+				return $results;
+			}
+			public function add_multiple( array $data, $group = '', $expire = 0 ) {
+				$results = [];
+				foreach ( $data as $key => $value ) {
+					$results[ $key ] = $this->add( $key, $value, $group, $expire );
+				}
+				return $results;
 			}
 			public function delete( $key, $group = '' ) {
 				$this->deleted[] = "$group/$key";
@@ -120,6 +158,90 @@ class ColdReadObjectCacheTest extends TestCase {
 		$this->assertSame( 'fresh-html', $real->store['newspack_blocks']['np_cached_block_abc_0'] );
 	}
 
+	public function test_get_reads_successful_set_on_cold_group(): void {
+		$real = $this->fake_real_cache();
+		$cold = new Cold_Read_Object_Cache( $real, [ 'newspack_blocks' ] );
+
+		$cold->set( 'k', 'fresh-html', 'newspack_blocks' );
+		$found = null;
+
+		$this->assertSame( 'fresh-html', $cold->get( 'k', 'newspack_blocks', false, $found ) );
+		$this->assertTrue( $found );
+	}
+
+	public function test_failed_set_keeps_cold_group_read_cold(): void {
+		$real = $this->fake_real_cache();
+		$real->set( 'k', 'stale-html', 'newspack_blocks' );
+		$real->fail_sets = true;
+
+		$cold  = new Cold_Read_Object_Cache( $real, [ 'newspack_blocks' ] );
+		$found = null;
+
+		$this->assertFalse( $cold->set( 'k', 'fresh-html', 'newspack_blocks' ) );
+		$this->assertFalse( $cold->get( 'k', 'newspack_blocks', false, $found ) );
+		$this->assertFalse( $found );
+	}
+
+	public function test_get_reads_successful_add_on_cold_group(): void {
+		$real = $this->fake_real_cache();
+		$cold = new Cold_Read_Object_Cache( $real, [ 'newspack_blocks' ] );
+
+		$this->assertTrue( $cold->add( 'k', 'fresh-html', 'newspack_blocks' ) );
+
+		$this->assertSame( 'fresh-html', $cold->get( 'k', 'newspack_blocks' ) );
+	}
+
+	public function test_failed_add_keeps_cold_group_read_cold(): void {
+		$real = $this->fake_real_cache();
+		$real->set( 'k', 'stale-html', 'newspack_blocks' );
+
+		$cold = new Cold_Read_Object_Cache( $real, [ 'newspack_blocks' ] );
+
+		$this->assertFalse( $cold->add( 'k', 'fresh-html', 'newspack_blocks' ) );
+		$this->assertFalse( $cold->get( 'k', 'newspack_blocks' ) );
+	}
+
+	public function test_get_reads_successful_replace_on_cold_group(): void {
+		$real = $this->fake_real_cache();
+		$real->set( 'k', 'stale-html', 'newspack_blocks' );
+
+		$cold = new Cold_Read_Object_Cache( $real, [ 'newspack_blocks' ] );
+
+		$this->assertTrue( $cold->replace( 'k', 'fresh-html', 'newspack_blocks' ) );
+
+		$this->assertSame( 'fresh-html', $cold->get( 'k', 'newspack_blocks' ) );
+	}
+
+	public function test_failed_replace_keeps_cold_group_read_cold(): void {
+		$real = $this->fake_real_cache();
+		$cold = new Cold_Read_Object_Cache( $real, [ 'newspack_blocks' ] );
+
+		$this->assertFalse( $cold->replace( 'k', 'fresh-html', 'newspack_blocks' ) );
+		$this->assertFalse( $cold->get( 'k', 'newspack_blocks' ) );
+	}
+
+	public function test_set_multiple_warms_successful_keys_on_cold_group(): void {
+		$real = $this->fake_real_cache();
+		$cold = new Cold_Read_Object_Cache( $real, [ 'newspack_blocks' ] );
+
+		$result = $cold->set_multiple( [ 'k1' => 'fresh-one', 'k2' => 'fresh-two' ], 'newspack_blocks' );
+
+		$this->assertSame( [ 'k1' => true, 'k2' => true ], $result );
+		$this->assertSame( [ 'k1' => 'fresh-one', 'k2' => 'fresh-two' ], $cold->get_multiple( [ 'k1', 'k2' ], 'newspack_blocks' ) );
+	}
+
+	public function test_add_multiple_warms_only_successful_keys_on_cold_group(): void {
+		$real = $this->fake_real_cache();
+		$real->set( 'k1', 'stale-one', 'newspack_blocks' );
+
+		$cold = new Cold_Read_Object_Cache( $real, [ 'newspack_blocks' ] );
+
+		$result = $cold->add_multiple( [ 'k1' => 'fresh-one', 'k2' => 'fresh-two' ], 'newspack_blocks' );
+
+		$this->assertSame( [ 'k1' => false, 'k2' => true ], $result );
+		$this->assertSame( [ 'k1' => false, 'k2' => 'fresh-two' ], $cold->get_multiple( [ 'k1', 'k2' ], 'newspack_blocks' ) );
+	}
+
 	public function test_get_multiple_misses_on_cold_group(): void {
 		$real = $this->fake_real_cache();
 		$cold = new Cold_Read_Object_Cache( $real, [ 'newspack_blocks' ] );
@@ -127,6 +249,17 @@ class ColdReadObjectCacheTest extends TestCase {
 		$result = $cold->get_multiple( [ 'k1', 'k2' ], 'newspack_blocks' );
 
 		$this->assertSame( [ 'k1' => false, 'k2' => false ], $result );
+	}
+
+	public function test_get_multiple_reads_warm_keys_on_cold_group_and_misses_cold_keys(): void {
+		$real = $this->fake_real_cache();
+		$cold = new Cold_Read_Object_Cache( $real, [ 'newspack_blocks' ] );
+
+		$cold->set( 'k1', 'fresh-html', 'newspack_blocks' );
+
+		$result = $cold->get_multiple( [ 'k1', 'k2' ], 'newspack_blocks' );
+
+		$this->assertSame( [ 'k1' => 'fresh-html', 'k2' => false ], $result );
 	}
 
 	public function test_unknown_methods_delegate_to_real_cache(): void {

@@ -16,6 +16,7 @@
 		"lint:js": "true",
 		"lint:scss": "true",
 		"lint:phpstan": "vendor/bin/phpstan analyse --memory-limit=1G --no-progress",
+		"test:js": "true",
 		"test:js:coverage": "true"
 	},
 	"devDependencies": {
