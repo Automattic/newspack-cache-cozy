@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Configure Cache Cozy's cold cache groups with the `NEWSPACK_CACHE_COZY_COLD_GROUPS` wp-config constant instead of the removed `newspack_cache_cozy_cold_groups` filter.
+- Raise Cache Cozy's declared PHP floor to 8.2, matching its required `newspack-nodes` substrate, and remove obsolete PHPUnit reflection accessibility calls that PHP 8.5 deprecates.
+
 ## [0.1.0] - 2026-06-10
 
 ### Added

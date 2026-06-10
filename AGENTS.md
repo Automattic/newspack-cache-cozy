@@ -22,7 +22,7 @@ Every code-writing turn — main Claude AND every subagent — MUST:
 
 ## Code Style
 
-WordPress VIP Go (enforced by `phpcs.xml.dist`): `snake_case`, Yoda conditions, `[]` arrays, tab indentation, spaces inside parens, PHP 8.0+ typed properties. PHPStan level 10 + `phpstan-strict-rules` (`phpstan.neon.dist`). Conventional commits. One-line code comments.
+WordPress VIP Go (enforced by `phpcs.xml.dist`): `snake_case`, Yoda conditions, `[]` arrays, tab indentation, spaces inside parens, PHP 8.2+. PHPStan level 10 + `phpstan-strict-rules` (`phpstan.neon.dist`). Conventional commits. One-line code comments.
 
 ## Build / Test
 

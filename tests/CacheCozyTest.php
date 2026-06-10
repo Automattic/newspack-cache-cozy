@@ -15,6 +15,8 @@ use Newspack_Cache_Cozy\Cache_Cozy;
 use Newspack_Cache_Cozy\Cold_Read_Object_Cache;
 use Newspack_Nodes\Tests\TestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 
 #[CoversClass( Cache_Cozy::class )]
 class CacheCozyTest extends TestCase {
@@ -38,7 +40,6 @@ class CacheCozyTest extends TestCase {
 		// Restore every global these tests touch so nothing bleeds into later
 		// suites (e.g. $_SERVER worker-type leaking into RequestBuilderTest).
 		unset(
-			$GLOBALS['_wp_actions']['newspack_cache_cozy_cold_groups'],
 			$GLOBALS['_wp_actions']['password_protected_is_active'],
 			$GLOBALS['_wp_actions']['determine_current_user'],
 			$_SERVER['NEWSPACK_NODES_WORKER_TYPE']
@@ -120,11 +121,15 @@ class CacheCozyTest extends TestCase {
 		$this->assertContains( 'site-transient', $groups );
 	}
 
-	public function test_cold_groups_are_filterable(): void {
-		add_filter(
-			'newspack_cache_cozy_cold_groups',
-			static fn ( array $groups ): array => array_merge( $groups, [ 'es_query_cache' ] )
-		);
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_cold_groups_can_be_configured_with_wp_config_constant(): void {
+		if ( ! defined( 'NEWSPACK_CACHE_COZY_COLD_GROUPS' ) ) {
+			define(
+				'NEWSPACK_CACHE_COZY_COLD_GROUPS',
+				[ 'newspack_blocks', 'transient', 'site-transient', 'es_query_cache' ]
+			);
+		}
 
 		$this->assertContains( 'es_query_cache', Cache_Cozy::cold_groups() );
 	}
@@ -234,7 +239,7 @@ class CacheCozyTest extends TestCase {
 		$this->assertGreaterThanOrEqual( 10, $call['args']['timeout'] );
 	}
 
-	public function test_sslverify_can_be_disabled_via_filter_for_self_signed_hosts(): void {
+	public function test_sslverify_can_be_disabled_via_wp_config_constant_for_self_signed_hosts(): void {
 		$GLOBALS['_wp_test_home_url'] = 'https://www.bendsource.com';
 		if ( ! defined( 'NEWSPACK_CACHE_COZY_SSLVERIFY' ) ) {
 			define( 'NEWSPACK_CACHE_COZY_SSLVERIFY', false );
@@ -242,7 +247,6 @@ class CacheCozyTest extends TestCase {
 		Cache_Cozy::run_tick();
 
 		$this->assertFalse( $GLOBALS['_wp_test_remote_gets'][0]['args']['sslverify'] );
-		unset( $GLOBALS['_wp_actions']['newspack_cache_cozy_sslverify'] );
 	}
 
 	public function test_run_tick_sends_basic_auth_when_credential_configured(): void {

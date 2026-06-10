@@ -7,6 +7,7 @@
  * License: GPL-2.0-or-later
  * Text Domain: newspack-cache-cozy
  * Requires Plugins: newspack-nodes
+ * Requires PHP: 8.2
  *
  * @package Newspack_Cache_Cozy
  */
