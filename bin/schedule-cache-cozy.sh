@@ -35,15 +35,15 @@ Newspack_Cache_Cozy\Cache_Cozy::store_auth( $c );
     echo "stored encrypted loopback credential"
 fi
 
-# Capture the event list in its own step so a wp failure (bad --path, wp
-# missing, DB down) aborts loud here under `set -e` instead of being read as
-# "hook not scheduled" and silently creating a duplicate.
-existing="$( "$WP" cron event list --field=hook "$@" )"
-
-if grep -Fxq "$HOOK" <<< "$existing"; then
-    echo "already scheduled: $HOOK"
-    exit 0
-fi
-
-"$WP" cron event schedule "$HOOK" now "$RECURRENCE" "$@"
-echo "scheduled $HOOK every minute ($RECURRENCE)"
+# # Capture the event list in its own step so a wp failure (bad --path, wp
+# # missing, DB down) aborts loud here under `set -e` instead of being read as
+# # "hook not scheduled" and silently creating a duplicate.
+# existing="$( "$WP" cron event list --field=hook "$@" )"
+# 
+# if grep -Fxq "$HOOK" <<< "$existing"; then
+#     echo "already scheduled: $HOOK"
+#     exit 0
+# fi
+# 
+# "$WP" cron event schedule "$HOOK" now "$RECURRENCE" "$@"
+# echo "scheduled $HOOK every minute ($RECURRENCE)"
