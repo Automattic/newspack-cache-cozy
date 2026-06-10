@@ -527,13 +527,18 @@ class Cache_Cozy {
 			return;
 		}
 		\set_transient( self::LOCK, 1, 60 );
+		$sslverify = true;
+		if ( \defined( 'NEWSPACK_CACHE_COZY_SSLVERIFY' ) ) {
+			$sslverify = (bool) \NEWSPACK_CACHE_COZY_SSLVERIFY;
+		}
 		$args = [
 			// phpcs:ignore WordPressVIPMinimum.Performance.RemoteRequestTimeout.timeout_timeout -- background cron must outlast the ~6.5s cold render.
 			'timeout'   => 20,
 			'blocking'  => true,
 			// Verify TLS by default (the loopback hits the public home_url host);
 			// only self-signed-cert dev environments opt out via the filter.
-			'sslverify' => (bool) \apply_filters( 'newspack_cache_cozy_sslverify', true ),
+			'sslverify' => $sslverify,
+
 		];
 		// Authenticate the loopback (application password) so the edge/page cache
 		// forwards to PHP for a real render instead of serving a cached homepage.
