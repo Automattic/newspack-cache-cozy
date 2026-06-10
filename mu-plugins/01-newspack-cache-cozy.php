@@ -367,17 +367,20 @@ class Cache_Cozy {
 
 	/**
 	 * Object-cache groups the warm render forces cold so the site rebuilds them.
+	 * Define NEWSPACK_CACHE_COZY_COLD_GROUPS in wp-config.php to override.
 	 *
 	 * @return array<int, string>
 	 */
 	public static function cold_groups(): array {
-		// Narrow the filtered mixed-array down to the string elements is_cold() consumes.
+		$groups = [ 'newspack_blocks', 'transient', 'site-transient' ];
+		if ( \defined( 'NEWSPACK_CACHE_COZY_COLD_GROUPS' ) ) {
+			$groups = (array) \constant( 'NEWSPACK_CACHE_COZY_COLD_GROUPS' );
+		}
+
+		// Narrow the configured mixed-array down to the string elements is_cold() consumes.
 		return \array_values(
 			\array_filter(
-				(array) \apply_filters(
-					'newspack_cache_cozy_cold_groups',
-					[ 'newspack_blocks', 'transient', 'site-transient' ]
-				),
+				$groups,
 				'\is_string'
 			)
 		);
@@ -536,7 +539,7 @@ class Cache_Cozy {
 			'timeout'   => 20,
 			'blocking'  => true,
 			// Verify TLS by default (the loopback hits the public home_url host);
-			// only self-signed-cert dev environments opt out via the filter.
+			// only self-signed-cert dev environments opt out via wp-config.
 			'sslverify' => $sslverify,
 
 		];

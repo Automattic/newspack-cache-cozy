@@ -44,34 +44,36 @@ class CacheCozyTickTest extends TestCase {
 		parent::tearDown();
 	}
 
+	/**
+	 * @param class-string $class_name Class that owns the reflected property.
+	 */
+	private function reflection_property( string $class_name, string $property ): \ReflectionProperty {
+		return new \ReflectionProperty( $class_name, $property );
+	}
+
 	/** Reset the private static init() idempotency guard so each test starts clean. */
 	private function set_registered( bool $value ): void {
-		$ref = new \ReflectionProperty( Cache_Cozy_Tick_Node::class, 'registered' );
-		$ref->setAccessible( true );
+		$ref = $this->reflection_property( Cache_Cozy_Tick_Node::class, 'registered' );
 		$ref->setValue( null, $value );
 	}
 
 	private function last_enqueue( Cache_Cozy_Tick_Node $node ): int {
-		$ref = new \ReflectionProperty( Cache_Cozy_Tick_Node::class, 'last_enqueue' );
-		$ref->setAccessible( true );
+		$ref = $this->reflection_property( Cache_Cozy_Tick_Node::class, 'last_enqueue' );
 		return (int) $ref->getValue( $node );
 	}
 
 	private function set_last_enqueue( Cache_Cozy_Tick_Node $node, int $value ): void {
-		$ref = new \ReflectionProperty( Cache_Cozy_Tick_Node::class, 'last_enqueue' );
-		$ref->setAccessible( true );
+		$ref = $this->reflection_property( Cache_Cozy_Tick_Node::class, 'last_enqueue' );
 		$ref->setValue( $node, $value );
 	}
 
 	private function interval_seconds( Cache_Cozy_Tick_Node $node ): int {
-		$ref = new \ReflectionProperty( Cache_Cozy_Tick_Node::class, 'interval_seconds' );
-		$ref->setAccessible( true );
+		$ref = $this->reflection_property( Cache_Cozy_Tick_Node::class, 'interval_seconds' );
 		return (int) $ref->getValue( $node );
 	}
 
 	private function set_interval_seconds( Cache_Cozy_Tick_Node $node, int $value ): void {
-		$ref = new \ReflectionProperty( Cache_Cozy_Tick_Node::class, 'interval_seconds' );
-		$ref->setAccessible( true );
+		$ref = $this->reflection_property( Cache_Cozy_Tick_Node::class, 'interval_seconds' );
 		$ref->setValue( $node, $value );
 	}
 
@@ -106,8 +108,7 @@ class CacheCozyTickTest extends TestCase {
 		$node->name( 'cache-cozy:tick' );
 		$node->arguments( '' );
 
-		$ref = new \ReflectionProperty( \Newspack_Nodes\Node::class, 'registrations' );
-		$ref->setAccessible( true );
+		$ref  = $this->reflection_property( \Newspack_Nodes\Node::class, 'registrations' );
 		$regs = $ref->getValue( $router );
 		$this->assertArrayHasKey( 'TIMER', $regs );
 		$this->assertArrayHasKey( 'cache-cozy:tick', $regs['TIMER'] );
@@ -242,14 +243,12 @@ class CacheCozyTickTest extends TestCase {
 
 		$this->assertSame( 30, $this->interval_seconds( $node ), 'numeric arg sets the per-instance interval' );
 
-		$ref  = new \ReflectionProperty( \Newspack_Nodes\Node::class, 'registrations' );
-		$ref->setAccessible( true );
+		$ref  = $this->reflection_property( \Newspack_Nodes\Node::class, 'registrations' );
 		$regs = $ref->getValue( $router );
 		$this->assertArrayHasKey( 'TIMER', $regs );
 		$this->assertArrayHasKey( 'cache-cozy:tick', $regs['TIMER'] );
 
-		$ef     = new \ReflectionProperty( Event_Framework::class, 'timers' );
-		$ef->setAccessible( true );
+		$ef     = $this->reflection_property( Event_Framework::class, 'timers' );
 		$timers = $ef->getValue( Event_Framework::instance() );
 		$this->assertArrayNotHasKey(
 			\spl_object_id( $node ),

@@ -14,6 +14,7 @@ The drop-in works on its own cron even with no substrate; the tick node is what 
 
 ## Requirements
 
+- PHP 8.2+
 - WordPress 6.0+
 - The **newspack-nodes** plugin (>= 0.15.0), active. Cache Cozy is gated on it — if the substrate is missing or too old you'll get an admin notice, not a fatal.
 
@@ -36,9 +37,17 @@ make_node Cache_Cozy_Tick cache-cozy:tick
 
 The warmer is zero-config by default. For tuning:
 
-- **Cold groups** — filter `newspack_cache_cozy_cold_groups` (array of cache-group names whose reads must miss during the warm render). Defaults cover the Newspack block cache and transients.
-- **TLS verification** — filter `newspack_cache_cozy_sslverify` (return `false` for self-signed dev hosts).
-- **Edge-cache bypass auth** — if your page cache serves anonymous homepages from the edge, the loopback never reaches PHP. Store an application-password credential (`user:app password`) so the loopback authenticates and is forwarded to PHP. The credential is encrypted at rest.
+- **Cold groups**: define `NEWSPACK_CACHE_COZY_COLD_GROUPS` as an array of cache-group names whose reads must miss during the warm render. Defaults cover the Newspack block cache and transients.
+- **TLS verification**: define `NEWSPACK_CACHE_COZY_SSLVERIFY` as `false` for self-signed dev hosts.
+- **Edge-cache bypass auth**: if your page cache serves anonymous homepages from the edge, the loopback never reaches PHP. Define `NEWSPACK_CACHE_COZY_AUTH` as `user:app password`, or store the credential with the plugin option so it is encrypted at rest.
+
+Example `wp-config.php` constants:
+
+```php
+define( 'NEWSPACK_CACHE_COZY_COLD_GROUPS', [ 'newspack_blocks', 'transient', 'site-transient' ] );
+define( 'NEWSPACK_CACHE_COZY_SSLVERIFY', false );
+define( 'NEWSPACK_CACHE_COZY_AUTH', 'svc-cache-cozy:abcd 1234 efgh ijkl' );
+```
 
 The warm render is forced logged-out (so block caching stays enabled and populates the anonymous cache real visitors read), bypasses password protection for its own secret-gated request, and tags itself so it's excluded from any timing stats.
 
