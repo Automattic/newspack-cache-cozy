@@ -6,6 +6,7 @@
 	"author": "Automattic",
 	"license": "GPL-2.0-or-later",
 	"scripts": {
+		"build": "true",
 		"release:archive": "./build-release.sh",
 		"fix:php": "phpcbf",
 		"fix:js": "true",
@@ -14,7 +15,8 @@
 		"lint:php": "phpcs",
 		"lint:js": "true",
 		"lint:scss": "true",
-		"lint:phpstan": "vendor/bin/phpstan analyse --memory-limit=1G --no-progress"
+		"lint:phpstan": "vendor/bin/phpstan analyse --memory-limit=1G --no-progress",
+		"test:js:coverage": "true"
 	},
 	"devDependencies": {
 		"@commitlint/cli": "^20.1.0",
