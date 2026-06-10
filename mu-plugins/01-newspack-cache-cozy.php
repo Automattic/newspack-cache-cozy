@@ -462,8 +462,9 @@ class Cache_Cozy {
 	}
 
 	/**
-	 * Encrypt + store the loopback credential (the install script calls this via
-	 * `wp eval`). Empty input clears it. Stored non-autoloaded.
+	 * Encrypt + store the loopback credential (the `bin/schedule-cache-cozy.sh`
+	 * operator script stores it via `wp eval`, reading the plaintext off stdin so
+	 * it never lands in `ps`). Empty input clears it. Stored non-autoloaded.
 	 *
 	 * @param string $credential "user:application password".
 	 */

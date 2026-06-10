@@ -7,6 +7,7 @@
 .gitignore
 .gitkeep
 *.log
+/bin
 /coverage
 /mu-plugins
 /release

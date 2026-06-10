@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Operator scripts `bin/schedule-cache-cozy.sh` and `bin/unschedule-cache-cozy.sh`** (ported from the legacy event-logger cache-warmer; `bin/` is excluded from the release zip). The schedule script schedules the `newspack_cache_cozy_tick` cron and optionally provisions the encrypted at-rest loopback credential via `\Newspack_Cache_Cozy\Cache_Cozy::store_auth()` (reading the plaintext off stdin so it never lands in `ps`) — restoring the provisioning entry point the initial extraction dropped, where only the `NEWSPACK_CACHE_COZY_AUTH` constant worked. The unschedule script removes the cron event plus the secret/auth options and the lock transient.
+
 ### Changed
 
 - Configure Cache Cozy's cold cache groups with the `NEWSPACK_CACHE_COZY_COLD_GROUPS` wp-config constant instead of the removed `newspack_cache_cozy_cold_groups` filter.

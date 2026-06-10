@@ -49,7 +49,8 @@ Releases are automated by GitHub Actions (`.github/workflows/release.yml`): push
 | `newspack-cache-cozy.php` | Plugin entry: constants, autoload, deferred loader (`plugins_loaded` @ 11, `class_exists` presence-gated) that registers the namespace + `Cache_Cozy_Tick_Node::init()` |
 | `includes/class-cache-cozy-tick-node.php` | `Cache_Cozy_Tick_Node` — Timer subclass; enqueues `cache_cozy` jobs + the job handler |
 | `mu-plugins/01-newspack-cache-cozy.php` | The self-contained warmer drop-in (`Cache_Cozy` + `Cold_Read_Object_Cache`) — separate release asset |
-| `tests/` | PHPUnit suite (`CacheCozyTickTest`, `CacheCozyTest`, `ColdReadObjectCacheTest`, `SubstrateGuardTest`); `bootstrap.php` loads the sibling substrate + WP stubs |
+| `bin/` | Operator scripts (excluded from the release zip): `schedule-cache-cozy.sh` (schedule the tick + optionally store the loopback credential via `Cache_Cozy::store_auth`, reading it off stdin) and `unschedule-cache-cozy.sh` (delete the cron event + secret/auth options + lock transient) |
+| `tests/` | PHPUnit suite (`CacheCozyTickTest`, `CacheCozyTest`, `ColdReadObjectCacheTest`); `bootstrap.php` loads the sibling substrate + WP stubs |
 | `build-release.sh` / `.distignore` | Build the plugin zip + copy the mu-plugin drop-in to `release/` |
 | `scripts/pre-push` | Lint + (when a dev container is present) deploy + phpunit gate |
 
