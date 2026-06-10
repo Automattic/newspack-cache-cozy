@@ -1,0 +1,43 @@
+includes:
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+parameters:
+    level: 10
+    # phpstan-strict-rules: the full set EXCEPT rules that fight WordPress
+    # idioms — empty() (pervasive WP), truthy conditionals (if ($count) / !$str),
+    # short ternary ($x ?: $y), and dynamic property / method access. Matches the
+    # newspack-nodes substrate config so a node-consuming plugin lints identically.
+    strictRules:
+        allRules: true
+        disallowedEmpty: false
+        booleansInConditions: false
+        booleansInLoopConditions: false
+        disallowedShortTernary: false
+        noVariableVariables: false
+    checkDynamicProperties: false
+    phpVersion: 80200
+    paths:
+        - newspack-cache-cozy.php
+        - includes
+        - mu-plugins
+    excludePaths:
+        - vendor
+        - tests
+        # Optional (?): only present after a release build / npm install.
+        - release (?)
+        - node_modules (?)
+    bootstrapFiles:
+        # newspack-cache-cozy.php defines NEWSPACK_CACHE_COZY_* constants via
+        # define() at load time. Bootstrapping it lets PHPStan see them.
+        - newspack-cache-cozy.php
+    scanFiles:
+        # Substrate plugin ROOT file: define()s NEWSPACK_NODES_VERSION (the
+        # runtime version the guard floors against). scanDirectories below covers
+        # the substrate classes under includes/, but this constant lives in the
+        # plugin root — scan it so the version read in the plugin entry resolves.
+        - ../newspack-nodes/newspack-nodes.php
+    scanDirectories:
+        # The substrate this plugin builds on. Cache_Cozy_Tick_Node extends
+        # Newspack_Nodes\Timer_Node and references Core / Message — point PHPStan
+        # at a newspack-nodes checkout so those resolve with real types (here:
+        # the sibling clone; a third party points this at their own checkout).
+        - ../newspack-nodes/includes

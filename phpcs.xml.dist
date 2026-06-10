@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<ruleset name="Newspack Cache Cozy">
+	<description>PHP Coding Standards for the Newspack Cache Cozy plugin.</description>
+
+	<!-- Scan plugin source + the mu-plugin drop-in (shipped as a separate asset
+	     but still linted). -->
+	<file>./includes</file>
+	<file>./mu-plugins</file>
+	<file>./newspack-cache-cozy.php</file>
+
+	<!-- Exclude vendor, dependency, and test directories. Tests create fixture
+	     directories under /tmp/, set $_SERVER values, and inject memory streams —
+	     all flagged by VIP-Go's pet rules even when intentional and harmless. -->
+	<exclude-pattern>*/vendor/*</exclude-pattern>
+	<exclude-pattern>*/node_modules/*</exclude-pattern>
+	<exclude-pattern>*/tests/*</exclude-pattern>
+
+	<!-- How to scan -->
+	<arg value="sp"/>
+	<arg name="colors"/>
+	<arg name="extensions" value="php"/>
+	<arg name="parallel" value="8"/>
+
+	<!-- Rules: WordPress VIP Go Coding Standards -->
+	<rule ref="WordPress-VIP-Go">
+		<!-- Exclude JS sniffs that cause PHPCS 4.0 deprecation warnings -->
+		<exclude name="WordPressVIPMinimum.JS"/>
+	</rule>
+
+	<!-- Text domain for translations -->
+	<config name="text_domain" value="newspack-cache-cozy"/>
+
+	<!-- Allow short array syntax -->
+	<rule ref="Generic.Arrays.DisallowLongArraySyntax"/>
+
+	<!-- WordPress version check -->
+	<config name="minimum_supported_wp_version" value="6.0"/>
+</ruleset>
