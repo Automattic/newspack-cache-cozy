@@ -1,0 +1,25 @@
+{
+	"name": "newspack-cache-cozy",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Refresh-ahead cache warmer for newspack-nodes.",
+	"author": "Automattic",
+	"license": "GPL-2.0-or-later",
+	"scripts": {
+		"release:archive": "./build-release.sh",
+		"fix:php": "phpcbf",
+		"lint:php": "phpcs",
+		"lint:phpstan": "vendor/bin/phpstan analyse --memory-limit=1G --no-progress"
+	},
+	"devDependencies": {
+		"@commitlint/cli": "^20.1.0",
+		"@commitlint/config-conventional": "^19.8.1",
+		"lint-staged": "^15.5.2"
+	},
+	"lint-staged": {
+		"*.php": [
+			"phpcs",
+			"sh -c 'npm run lint:phpstan --silent'"
+		]
+	}
+}

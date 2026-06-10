@@ -1,0 +1,19 @@
+# Build / dependency outputs
+/node_modules/
+/vendor/
+
+# Release artifacts
+/release/
+/.release-staging/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+
+# Agent tooling scratch — a regenerable symlink to the tracked .claude dir; never track it.
+.agents
