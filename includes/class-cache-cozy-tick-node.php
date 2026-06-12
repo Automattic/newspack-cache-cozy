@@ -112,7 +112,7 @@ class Cache_Cozy_Tick_Node extends Timer_Node {
 		$message[ Message::FROM  ] = $this->name;
 		$message[ Message::TO    ] = $this->target;
 		$message[ Message::VALUE ] = [
-			'type'       => 'job',
+			'k'          => 'job',
 			'handler'    => self::JOB_HANDLER,
 			'parameters' => [
 				'queued_at' => $now,
