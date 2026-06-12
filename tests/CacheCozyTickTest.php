@@ -311,7 +311,9 @@ class CacheCozyTickTest extends TestCase {
 
 		$this->assertCount( 1, $capture->captured, 'fire() must emit one job message' );
 		$value = $capture->captured[0][ \Newspack_Nodes\Message::VALUE ];
-		$this->assertSame( 'job', $value['type'] );
+		// Canonical job-entry kind field is `k` (the firehose category Job_Worker
+		// dispatches on), not `type`.
+		$this->assertSame( 'job', $value['k'] );
 		$this->assertSame( Cache_Cozy_Tick_Node::JOB_HANDLER, $value['handler'] );
 		$this->assertSame( 45, $value['parameters']['interval'], 'fire() must thread the interval into the job params' );
 	}

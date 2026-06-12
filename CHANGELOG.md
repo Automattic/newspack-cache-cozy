@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`Cache_Cozy_Tick_Node` enqueues its `cache_cozy` job keyed by `k`, not `type`.** The substrate `Job_Worker_Node` now dispatches on the entry-level `k` field (the canonical jobs.log job-kind discriminator); the tick node hand-built its job entry with `type`, so its warm jobs would be dropped before reaching the handler. Now writes `'k' => 'job'`. Requires `newspack-nodes` with the `k`-reading `Job_Worker_Node`.
+
 ## [0.1.0] - 2026-06-11
 
 ### Added
