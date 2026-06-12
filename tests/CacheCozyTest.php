@@ -50,6 +50,18 @@ class CacheCozyTest extends TestCase {
 		parent::tearDown();
 	}
 
+	/**
+	 * Read a private/protected property off any object via reflection.
+	 *
+	 * @param object $obj  The object to read from.
+	 * @param string $prop The property name.
+	 */
+	private function read_protected( object $obj, string $prop ): mixed {
+		$ref = new \ReflectionProperty( $obj, $prop );
+		$ref->setAccessible( true );
+		return $ref->getValue( $obj );
+	}
+
 	/** Minimal array-backed WP_Object_Cache double (group-namespaced get/set). */
 	private function fake_object_cache(): object {
 		return new class() {
@@ -200,6 +212,56 @@ class CacheCozyTest extends TestCase {
 		$this->assertSame( $first, $GLOBALS['wp_object_cache'], 'must not double-wrap the object cache' );
 	}
 
+	public function test_install_cold_cache_honors_explicit_groups(): void {
+		$GLOBALS['wp_object_cache'] = $this->fake_object_cache();
+
+		Cache_Cozy::install_cold_cache( [ 'only_this' ] );
+
+		$this->assertInstanceOf( Cold_Read_Object_Cache::class, $GLOBALS['wp_object_cache'] );
+		$this->assertSame( [ 'only_this' ], $this->read_protected( $GLOBALS['wp_object_cache'], 'cold' ) );
+	}
+
+	public function test_install_cold_cache_falls_back_to_default_groups(): void {
+		$GLOBALS['wp_object_cache'] = $this->fake_object_cache();
+
+		Cache_Cozy::install_cold_cache();
+
+		$this->assertSame(
+			Cache_Cozy::cold_groups(),
+			$this->read_protected( $GLOBALS['wp_object_cache'], 'cold' ),
+			'null groups must fall back to the default cold_groups()'
+		);
+	}
+
+	public function test_maybe_install_honors_secret_gated_groups_override(): void {
+		$GLOBALS['_wp_test_home_url'] = 'https://www.bendsource.com';
+		$GLOBALS['wp_object_cache']   = $this->fake_object_cache();
+		$_GET['cache_cozy_warm']      = Cache_Cozy::secret();
+		$_GET['cache_cozy_groups']    = 'only_this,and_that';
+
+		Cache_Cozy::maybe_install_for_request();
+
+		$this->assertInstanceOf( Cold_Read_Object_Cache::class, $GLOBALS['wp_object_cache'] );
+		$this->assertSame(
+			[ 'only_this', 'and_that' ],
+			$this->read_protected( $GLOBALS['wp_object_cache'], 'cold' )
+		);
+	}
+
+	public function test_groups_param_ignored_without_a_valid_secret(): void {
+		// The groups override is post-secret only: a wrong secret installs nothing,
+		// so the override can't be abused to cool arbitrary groups on a real request.
+		$GLOBALS['_wp_test_home_url'] = 'https://www.bendsource.com';
+		$real                         = $this->fake_object_cache();
+		$GLOBALS['wp_object_cache']   = $real;
+		$_GET['cache_cozy_warm']      = 'wrong-secret';
+		$_GET['cache_cozy_groups']    = 'only_this';
+
+		Cache_Cozy::maybe_install_for_request();
+
+		$this->assertSame( $real, $GLOBALS['wp_object_cache'], 'a bad secret must not install the cold cache' );
+	}
+
 	// ── Secret + loopback URL ───────────────────────────────────────────────
 
 	public function test_secret_generated_once_then_persisted(): void {
@@ -223,6 +285,22 @@ class CacheCozyTest extends TestCase {
 
 		$this->assertStringStartsWith( 'https://www.bendsource.com/', $url );
 		$this->assertStringContainsString( 'cache_cozy_warm=' . Cache_Cozy::secret(), $url );
+	}
+
+	public function test_warm_url_includes_path_and_cold_groups(): void {
+		$GLOBALS['_wp_test_home_url'] = 'https://www.bendsource.com';
+
+		$url = Cache_Cozy::warm_url( '/events', 'newspack_blocks,transient' );
+
+		$this->assertStringContainsString( '/events', $url );
+		$this->assertStringContainsString( 'cache_cozy_warm=' . Cache_Cozy::secret(), $url );
+		$this->assertStringContainsString( 'cache_cozy_groups=newspack_blocks%2Ctransient', $url );
+	}
+
+	public function test_warm_url_omits_groups_param_when_empty(): void {
+		$GLOBALS['_wp_test_home_url'] = 'https://www.bendsource.com';
+
+		$this->assertStringNotContainsString( 'cache_cozy_groups', Cache_Cozy::warm_url( '/', '' ) );
 	}
 
 	// ── Cron tick (loopback) ────────────────────────────────────────────────
