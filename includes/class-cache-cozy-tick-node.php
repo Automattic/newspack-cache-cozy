@@ -151,10 +151,11 @@ class Cache_Cozy_Tick_Node extends Timer_Node {
 
 	public static function node_schema(): array {
 		return [
-			'category'    => 'Control',
-			'description' => 'Queues a cache_cozy JobWorker job (default every 60s); self-starts in arguments(); optional numeric arg = warm-enqueue interval in seconds (default 60).',
-			'arguments'   => [],
-			'commands'    => [],
+			'category'     => 'Control',
+			'description'  => 'Queues a cache_cozy JobWorker job (default every 60s); self-starts in arguments(); optional numeric arg = warm-enqueue interval in seconds (default 60).',
+			'arguments'    => [],
+			'commands'     => [],
+			'accepts_fill' => false,
 		];
 	}
 }
