@@ -77,6 +77,16 @@ class CacheCozyTickTest extends TestCase {
 		$ref->setValue( $node, $value );
 	}
 
+	private function path( Cache_Cozy_Tick_Node $node ): string {
+		$ref = $this->reflection_property( Cache_Cozy_Tick_Node::class, 'path' );
+		return (string) $ref->getValue( $node );
+	}
+
+	private function cold_groups( Cache_Cozy_Tick_Node $node ): string {
+		$ref = $this->reflection_property( Cache_Cozy_Tick_Node::class, 'cold_groups' );
+		return (string) $ref->getValue( $node );
+	}
+
 	// ── Constant + handler registration ─────────────────────────────────────
 
 	public function test_interval_is_sixty_seconds(): void {
@@ -318,6 +328,26 @@ class CacheCozyTickTest extends TestCase {
 		$this->assertSame( 45, $value['parameters']['interval'], 'fire() must thread the interval into the job params' );
 	}
 
+	// ── fire(): path + cold_groups are threaded into the job parameters ──────
+
+	public function test_fire_enqueues_path_and_cold_groups(): void {
+		$router = new Router_Node();
+		$router->name( '_router' );
+
+		$node = new Cache_Cozy_Tick_Node();
+		$sink = new Capture_Sink_Node();
+		$node->name( 'cache-cozy:tick' );
+		$node->arguments( '60 /events newspack_blocks' );
+		$node->sink( $sink );
+
+		$node->fire();
+
+		$this->assertCount( 1, $sink->captured, 'fire() must emit one job message' );
+		$value = $sink->captured[0][ \Newspack_Nodes\Message::VALUE ];
+		$this->assertSame( '/events', $value['parameters']['path'], 'fire() must thread the path into the job params' );
+		$this->assertSame( 'newspack_blocks', $value['parameters']['cold_groups'], 'fire() must thread cold_groups into the job params' );
+	}
+
 	// ── handle_job(): stale threshold uses the job's own interval ────────────
 
 	public function test_handle_job_drops_stale_request_using_job_interval(): void {
@@ -325,6 +355,21 @@ class CacheCozyTickTest extends TestCase {
 		Cache_Cozy_Tick_Node::handle_job( [ 'queued_at' => \time() - 31, 'interval' => 30 ] );
 
 		$this->assertCount( 0, $GLOBALS['_wp_test_remote_gets'], 'stale-by-job-interval must be dropped' );
+	}
+
+	public function test_handle_job_forwards_path_and_cold_groups_to_warm_loopback(): void {
+		Cache_Cozy_Tick_Node::handle_job(
+			[
+				'queued_at'   => \time(),
+				'path'        => '/events',
+				'cold_groups' => 'newspack_blocks,transient',
+			]
+		);
+
+		$this->assertCount( 1, $GLOBALS['_wp_test_remote_gets'], 'a fresh job must fire the warm loopback' );
+		$url = $GLOBALS['_wp_test_remote_gets'][0]['url'];
+		$this->assertStringContainsString( '/events', $url, 'handle_job must forward the path to the loopback URL' );
+		$this->assertStringContainsString( 'cache_cozy_groups=', $url, 'handle_job must forward cold_groups to the loopback URL' );
 	}
 
 	public function test_handle_job_falls_back_to_const_when_interval_absent(): void {
@@ -335,13 +380,32 @@ class CacheCozyTickTest extends TestCase {
 		$this->assertCount( 1, $GLOBALS['_wp_test_remote_gets'], 'no interval key falls back to 60s; 31s is fresh' );
 	}
 
-	// ── arguments(): non-numeric arg is rejected ─────────────────────────────
+	// ── arguments(): schema-driven interval + path + cold_groups ─────────────
 
-	public function test_arguments_rejects_non_numeric_arg(): void {
+	public function test_arguments_assign_interval_path_and_cold_groups(): void {
+		// arguments() ends in set_timer() (the router hitchhike), so a _router is required.
+		$router = new Router_Node();
+		$router->name( '_router' );
+
 		$node = new Cache_Cozy_Tick_Node();
 		$node->name( 'cache-cozy:tick' );
+		$node->arguments( '120 /category/news newspack_blocks,transient' );
 
-		$this->expectException( \InvalidArgumentException::class );
-		$node->arguments( 'not-a-number' );
+		$this->assertSame( 120, $this->interval_seconds( $node ) );
+		$this->assertSame( '/category/news', $this->path( $node ) );
+		$this->assertSame( 'newspack_blocks,transient', $this->cold_groups( $node ) );
+	}
+
+	public function test_arguments_default_path_and_groups_when_only_interval(): void {
+		$router = new Router_Node();
+		$router->name( '_router' );
+
+		$node = new Cache_Cozy_Tick_Node();
+		$node->name( 'cache-cozy:tick' );
+		$node->arguments( '90' );
+
+		$this->assertSame( 90, $this->interval_seconds( $node ) );
+		$this->assertSame( '/', $this->path( $node ), 'path defaults to / when only interval is given' );
+		$this->assertSame( '', $this->cold_groups( $node ), 'cold_groups defaults to empty when only interval is given' );
 	}
 }

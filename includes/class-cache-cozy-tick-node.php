@@ -24,6 +24,7 @@ namespace Newspack_Cache_Cozy;
 
 use Newspack_Nodes\Core;
 use Newspack_Nodes\Message;
+use Newspack_Nodes\Schema_Reflection;
 use Newspack_Nodes\Timer_Node;
 
 if ( ! \defined( 'ABSPATH' ) ) {
@@ -31,14 +32,23 @@ if ( ! \defined( 'ABSPATH' ) ) {
 }
 
 class Cache_Cozy_Tick_Node extends Timer_Node {
+	// Positional `<interval_seconds> <path> <cold_groups>` parsing via node_schema().
+	use Schema_Reflection;
+
 	/** DEFAULT tick cadence + the static handler's stale-drop fallback (when a job carries no `interval`). */
 	public const INTERVAL_SECONDS = 60;
 
 	/** Job handler name — shared by the enqueue (fire) and the registration so they can't drift. */
 	public const JOB_HANDLER = 'cache_cozy';
 
-	/** Per-instance warm-enqueue cadence in seconds (numeric arg overrides the default). */
+	/** Per-instance warm-enqueue cadence in seconds (positional arg overrides the default). */
 	protected int $interval_seconds = self::INTERVAL_SECONDS;
+
+	/** Path warmed by the loopback (default homepage). Threaded to the job + loopback URL. */
+	protected string $path = '/';
+
+	/** Comma-joined cold-group override for this tick (empty = the drop-in's default cold_groups()). */
+	protected string $cold_groups = '';
 
 	/** Unix timestamp of the last enqueue (0 = never). */
 	protected int $last_enqueue = 0;
@@ -75,22 +85,22 @@ class Cache_Cozy_Tick_Node extends Timer_Node {
 		return $handlers;
 	}
 
+	/**
+	 * Positional args via Schema_Reflection: `<interval_seconds> <path> <cold_groups>`.
+	 * Empty string keeps every default; set_timer() (re)starts the _router heartbeat
+	 * hitchhike — the debounce is the real cadence gate, so the ~5s poll is plenty.
+	 *
+	 * @param string|null $args Raw positional argument string (null = getter).
+	 */
 	public function arguments( ?string $args = null ): string {
 		if ( null === $args ) {
 			return $this->arguments;
 		}
 		$this->arguments = $args;
-		if ( '' === $args ) {
-			$this->set_timer();
-		} elseif ( preg_match( '/^[1-9][0-9]*$/', $args ) ) {
-			// Numeric arg = warm-enqueue interval in seconds. Keep the efficient
-			// _router heartbeat hitchhike (null) — the debounce is the real cadence
-			// gate; the ~5s router poll is plenty of granularity.
-			$this->interval_seconds = (int) $args;
-			$this->set_timer();
-		} else {
-			throw new \InvalidArgumentException( 'Bad arguments for Cache_Cozy_Tick' );
+		if ( '' !== $args ) {
+			$this->parse_schema_args( $args );
 		}
+		$this->set_timer();
 		return $this->arguments;
 	}
 
@@ -115,8 +125,10 @@ class Cache_Cozy_Tick_Node extends Timer_Node {
 			'k'          => 'job',
 			'handler'    => self::JOB_HANDLER,
 			'parameters' => [
-				'queued_at' => $now,
-				'interval'  => $this->interval_seconds,
+				'queued_at'   => $now,
+				'interval'    => $this->interval_seconds,
+				'path'        => $this->path,
+				'cold_groups' => $this->cold_groups,
 			],
 		];
 		parent::fill( $message );
@@ -146,14 +158,22 @@ class Cache_Cozy_Tick_Node extends Timer_Node {
 			Core::print_less_often( 'CacheCozyTick: drop-in not installed; cannot warm' );
 			return;
 		}
-		\Newspack_Cache_Cozy\Cache_Cozy::run_tick();
+		$raw_path    = $parameters['path'] ?? '/';
+		$path        = \is_string( $raw_path ) && '' !== $raw_path ? $raw_path : '/';
+		$raw_groups  = $parameters['cold_groups'] ?? '';
+		$cold_groups = \is_string( $raw_groups ) ? $raw_groups : '';
+		\Newspack_Cache_Cozy\Cache_Cozy::run_tick( $path, $cold_groups );
 	}
 
 	public static function node_schema(): array {
 		return [
 			'category'     => 'Control',
-			'description'  => 'Queues a cache_cozy JobWorker job (default every 60s); self-starts in arguments(); optional numeric arg = warm-enqueue interval in seconds (default 60).',
-			'arguments'    => [],
+			'description'  => 'Queues a cache_cozy JobWorker job (default every 60s); self-starts in arguments(). Positional args: <interval_seconds> <path> <cold_groups>.',
+			'arguments'    => [
+				[ 'name' => 'interval_seconds', 'type' => 'int',    'default' => self::INTERVAL_SECONDS ],
+				[ 'name' => 'path',             'type' => 'string', 'default' => '/' ],
+				[ 'name' => 'cold_groups',      'type' => 'string', 'default' => '' ],
+			],
 			'commands'     => [],
 			'accepts_fill' => false,
 		];

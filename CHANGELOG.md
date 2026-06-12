@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`Cache_Cozy_Tick` warms an arbitrary path with an optional per-tick cold-group override.** The node now takes positional `make_node` args via the `Schema_Reflection` trait — `<interval_seconds> <path> <cold_groups>` (e.g. `make_node Cache_Cozy_Tick cache-cozy:tick 60 /category/news newspack_blocks,transient`). `path` and `cold_groups` thread through the enqueued `cache_cozy` job into the loopback: the warmer hits `home_url($path)` and, when groups are supplied, passes them as a secret-gated `cache_cozy_groups` query param that overrides the global `cold_groups()` for that render. Args are positional (interval first); omit them all for the previous default (60s, homepage, configured groups).
+
+### Changed
+
+- `Cache_Cozy_Tick_Node::arguments()` now parses via `parse_schema_args()` (the schema is the single source of truth for the arg list) instead of bespoke numeric-only validation; a non-numeric first token is coerced per the declared `int` type rather than throwing.
+
 ## [0.1.1] - 2026-06-12
 
 ### Fixed

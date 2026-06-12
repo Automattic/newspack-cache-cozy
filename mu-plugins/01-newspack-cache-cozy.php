@@ -362,7 +362,30 @@ class Cache_Cozy {
 		// block caching for logged-in editors and we'd rebuild but cache nothing.
 		// Force anonymous, overriding any app-password auth the header triggers.
 		\add_filter( 'determine_current_user', static fn () => 0, PHP_INT_MAX );
-		self::install_cold_cache();
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- the secret param (validated above) IS the auth.
+		$groups_override = self::groups_from_request( $_GET );
+		self::install_cold_cache( $groups_override );
+	}
+
+	/**
+	 * Parse a secret-gated `cache_cozy_groups` query param into a clean string[],
+	 * or null when absent (caller falls back to the global cold_groups()).
+	 *
+	 * @param array<array-key, mixed> $get The request query params ($_GET).
+	 * @return array<int, string>|null
+	 */
+	private static function groups_from_request( array $get ): ?array {
+		if ( ! isset( $get['cache_cozy_groups'] ) || ! \is_string( $get['cache_cozy_groups'] ) ) {
+			return null;
+		}
+		$out = [];
+		foreach ( \explode( ',', $get['cache_cozy_groups'] ) as $group ) {
+			$group = \preg_replace( '/[^a-z0-9_-]/i', '', \trim( $group ) );
+			if ( null !== $group && '' !== $group ) {
+				$out[] = $group;
+			}
+		}
+		return [] === $out ? null : $out;
 	}
 
 	/**
@@ -401,8 +424,12 @@ class Cache_Cozy {
 		return \hash_equals( $expected_secret, $get['cache_cozy_warm'] );
 	}
 
-	/** Swap the live object cache for the cold-read decorator (process-local, idempotent). */
-	public static function install_cold_cache(): void {
+	/**
+	 * Swap the live object cache for the cold-read decorator (process-local, idempotent).
+	 *
+	 * @param array<int, string>|null $groups Explicit cold groups, or null for cold_groups().
+	 */
+	public static function install_cold_cache( ?array $groups = null ): void {
 		if (
 			! isset( $GLOBALS['wp_object_cache'] )
 			|| $GLOBALS['wp_object_cache'] instanceof Cold_Read_Object_Cache
@@ -414,7 +441,7 @@ class Cache_Cozy {
 		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- deliberate, process-local swap for the warm render only.
 		$GLOBALS['wp_object_cache'] = new Cold_Read_Object_Cache(
 			$real_cache,
-			self::cold_groups()
+			$groups ?? self::cold_groups()
 		);
 	}
 
@@ -430,9 +457,19 @@ class Cache_Cozy {
 		return $secret;
 	}
 
-	/** The loopback URL the cron hits (homepage + secret param). */
-	public static function warm_url(): string {
-		return \add_query_arg( 'cache_cozy_warm', self::secret(), \home_url( '/' ) );
+	/**
+	 * The loopback URL the cron hits (path + secret, optional cold-group override).
+	 *
+	 * @param string $path        Path to warm (default homepage).
+	 * @param string $cold_groups Comma-joined cold-group override (empty = drop-in default).
+	 * @return string
+	 */
+	public static function warm_url( string $path = '/', string $cold_groups = '' ): string {
+		$url = \add_query_arg( 'cache_cozy_warm', self::secret(), \home_url( $path ) );
+		if ( '' !== $cold_groups ) {
+			$url = \add_query_arg( 'cache_cozy_groups', $cold_groups, $url );
+		}
+		return $url;
 	}
 
 	/**
@@ -523,8 +560,13 @@ class Cache_Cozy {
 		return false === $plaintext ? '' : $plaintext;
 	}
 
-	/** Cron callback: fire the blocking loopback warm render (single-flight). */
-	public static function run_tick(): void {
+	/**
+	 * Cron callback: fire the blocking loopback warm render (single-flight).
+	 *
+	 * @param string $path        Path to warm (default homepage).
+	 * @param string $cold_groups Comma-joined cold-group override (empty = drop-in default).
+	 */
+	public static function run_tick( string $path = '/', string $cold_groups = '' ): void {
 		// Single-flight: skip if a prior render is still in flight (the lock
 		// also auto-expires, so a crashed render can't wedge the warmer).
 		if ( \get_transient( self::LOCK ) ) {
@@ -551,7 +593,7 @@ class Cache_Cozy {
 			$args['headers'] = [ 'Authorization' => $auth ];
 		}
 		// phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_remote_get_wp_remote_get -- portable loopback; vip_safe_* may be absent off-VIP and caps the timeout below our cold render.
-		$result = \wp_remote_get( self::warm_url(), $args );
+		$result = \wp_remote_get( self::warm_url( $path, $cold_groups ), $args );
 		\delete_transient( self::LOCK );
 
 		// Surface loopback failures (e.g. an unroutable host) instead of swallowing them.
