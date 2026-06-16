@@ -57,35 +57,6 @@ class Cache_Cozy_Tick_Node extends Timer_Node {
 	private static bool $registered = false;
 
 	/**
-	 * Register the `cache_cozy` job handler on the standard JobWorker filter
-	 * (plugin load). Named init() not register() — Node::register() is the
-	 * instance-level event-subscription API and can't be overridden static.
-	 */
-	public static function init(): void {
-		if ( self::$registered ) {
-			return;
-		}
-		self::$registered = true;
-		if ( \function_exists( 'add_filter' ) ) {
-			\add_filter( 'newspack_nodes/job_handlers', [ self::class, 'register_handler' ] );
-		}
-	}
-
-	/**
-	 * Add the `cache_cozy` handler to the JobWorker's local-handler map.
-	 *
-	 * @param mixed $handlers Existing handlers (filter boundary — coerced to array).
-	 * @return array<string, mixed>
-	 */
-	public static function register_handler( $handlers ): array {
-		// Filter-boundary value; handler maps are string-keyed by design.
-		/** @var array<string, mixed> $handlers */
-		$handlers = \is_array( $handlers ) ? $handlers : [];
-		$handlers[ self::JOB_HANDLER ] = [ self::class, 'handle_job' ];
-		return $handlers;
-	}
-
-	/**
 	 * Positional args via Schema_Reflection: `<interval_seconds> <path> <cold_groups>`.
 	 * Empty string keeps every default; set_timer() (re)starts the _router heartbeat
 	 * hitchhike — the debounce is the real cadence gate, so the ~5s poll is plenty.
@@ -132,6 +103,35 @@ class Cache_Cozy_Tick_Node extends Timer_Node {
 			],
 		];
 		parent::fill( $message );
+	}
+
+	/**
+	 * Register the `cache_cozy` job handler on the standard JobWorker filter
+	 * (plugin load). Named init() not register() — Node::register() is the
+	 * instance-level event-subscription API and can't be overridden static.
+	 */
+	public static function init(): void {
+		if ( self::$registered ) {
+			return;
+		}
+		self::$registered = true;
+		if ( \function_exists( 'add_filter' ) ) {
+			\add_filter( 'newspack_nodes/job_handlers', [ self::class, 'register_handler' ] );
+		}
+	}
+
+	/**
+	 * Add the `cache_cozy` handler to the JobWorker's local-handler map.
+	 *
+	 * @param mixed $handlers Existing handlers (filter boundary — coerced to array).
+	 * @return array<string, mixed>
+	 */
+	public static function register_handler( $handlers ): array {
+		// Filter-boundary value; handler maps are string-keyed by design.
+		/** @var array<string, mixed> $handlers */
+		$handlers = \is_array( $handlers ) ? $handlers : [];
+		$handlers[ self::JOB_HANDLER ] = [ self::class, 'handle_job' ];
+		return $handlers;
 	}
 
 	/**
