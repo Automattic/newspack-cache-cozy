@@ -1,6 +1,7 @@
 # Build / dependency outputs
 /node_modules/
 /vendor/
+/.phpstan/cache/
 
 # Release artifacts
 /release/
