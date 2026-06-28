@@ -3,6 +3,9 @@
 /vendor/
 /.phpstan/cache/
 
+# Test coverage outputs
+/coverage/
+
 # Release artifacts
 /release/
 /.release-staging/
