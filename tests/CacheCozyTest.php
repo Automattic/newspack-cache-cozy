@@ -58,7 +58,6 @@ class CacheCozyTest extends TestCase {
 	 */
 	private function read_protected( object $obj, string $prop ): mixed {
 		$ref = new \ReflectionProperty( $obj, $prop );
-		$ref->setAccessible( true );
 		return $ref->getValue( $obj );
 	}
 
