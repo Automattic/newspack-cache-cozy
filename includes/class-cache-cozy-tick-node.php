@@ -41,20 +41,20 @@ class Cache_Cozy_Tick_Node extends Timer_Node {
 	/** Job handler name — shared by the enqueue (fire) and the registration so they can't drift. */
 	public const JOB_HANDLER = 'cache_cozy';
 
-	/** Per-instance warm-enqueue cadence in seconds (positional arg overrides the default). */
-	protected int $interval_seconds = self::INTERVAL_SECONDS;
-
-	/** Path warmed by the loopback (default homepage). Threaded to the job + loopback URL. */
-	protected string $path = '/';
+	/** Static guard so init() is idempotent across the worker-runtime bootstrap. */
+	private static bool $registered = false;
 
 	/** Comma-joined cold-group override for this tick (empty = the drop-in's default cold_groups()). */
 	protected string $cold_groups = '';
 
+	/** Per-instance warm-enqueue cadence in seconds (positional arg overrides the default). */
+	protected int $interval_seconds = self::INTERVAL_SECONDS;
+
 	/** Unix timestamp of the last enqueue (0 = never). */
 	protected int $last_enqueue = 0;
 
-	/** Static guard so init() is idempotent across the worker-runtime bootstrap. */
-	private static bool $registered = false;
+	/** Path warmed by the loopback (default homepage). Threaded to the job + loopback URL. */
+	protected string $path = '/';
 
 	/**
 	 * Positional args via Schema_Reflection: `<interval_seconds> <path> <cold_groups>`.
