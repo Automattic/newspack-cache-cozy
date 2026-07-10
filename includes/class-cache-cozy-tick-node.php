@@ -129,7 +129,7 @@ class Cache_Cozy_Tick_Node extends Timer_Node {
 	public static function register_handler( $handlers ): array {
 		// Filter-boundary value; handler maps are string-keyed by design.
 		/** @var array<string, mixed> $handlers */
-		$handlers = \is_array( $handlers ) ? $handlers : [];
+		$handlers = Core::arr( $handlers );
 		$handlers[ self::JOB_HANDLER ] = [ self::class, 'handle_job' ];
 		return $handlers;
 	}
@@ -148,7 +148,7 @@ class Cache_Cozy_Tick_Node extends Timer_Node {
 		$queued_at     = (int) $raw_queued_at;
 		// Fall back to the const for old/in-flight jobs with a bad interval.
 		$raw_interval = $parameters['interval'] ?? self::INTERVAL_SECONDS;
-		$interval     = \is_numeric( $raw_interval ) ? (int) $raw_interval : self::INTERVAL_SECONDS;
+		$interval     = Core::num_int( $raw_interval, self::INTERVAL_SECONDS );
 		if ( $queued_at > 0 && ( \time() - $queued_at ) >= $interval ) {
 			Core::print_less_often( 'CacheCozyTick: dropping stale warm job (age >= ' . $interval . 's)' );
 			return;
@@ -160,7 +160,7 @@ class Cache_Cozy_Tick_Node extends Timer_Node {
 		$raw_path    = $parameters['path'] ?? '/';
 		$path        = \is_string( $raw_path ) && '' !== $raw_path ? $raw_path : '/';
 		$raw_groups  = $parameters['cold_groups'] ?? '';
-		$cold_groups = \is_string( $raw_groups ) ? $raw_groups : '';
+		$cold_groups = Core::str( $raw_groups );
 		\Newspack_Cache_Cozy\Cache_Cozy::run_tick( $path, $cold_groups );
 	}
 

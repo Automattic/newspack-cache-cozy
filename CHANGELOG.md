@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`Cache_Cozy_Tick_Node`'s three read coercions fold onto the substrate's new `\Newspack_Nodes\Core` helpers** — the handler filter-map read onto `arr()`, the cold-groups read onto `str()`, and the stale-job interval read onto `num_int( …, self::INTERVAL_SECONDS )` — same semantics, defined once in the substrate this plugin already depends on.
+
 ## [0.2.2] - 2026-07-07
 
 ### Security
