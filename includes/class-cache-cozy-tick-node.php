@@ -146,7 +146,7 @@ class Cache_Cozy_Tick_Node extends Timer_Node {
 		/** @var int|float|string|bool|null $raw_queued_at */
 		$raw_queued_at = $parameters['queued_at'] ?? 0;
 		$queued_at     = (int) $raw_queued_at;
-		// Fall back to the const for old/in-flight jobs with a missing/malformed interval.
+		// Fall back to the const for old/in-flight jobs with a bad interval.
 		$raw_interval = $parameters['interval'] ?? self::INTERVAL_SECONDS;
 		$interval     = \is_numeric( $raw_interval ) ? (int) $raw_interval : self::INTERVAL_SECONDS;
 		if ( $queued_at > 0 && ( \time() - $queued_at ) >= $interval ) {
