@@ -32,7 +32,7 @@ if ( ! \defined( 'ABSPATH' ) ) {
 }
 
 class Cache_Cozy_Tick_Node extends Timer_Node {
-	// Positional `<interval_seconds> <path> <cold_groups>` parsing via node_schema().
+	// Positional args parsed via node_schema().
 	use Schema_Reflection;
 
 	/** DEFAULT tick cadence + the static handler's stale-drop fallback (when a job carries no `interval`). */
@@ -146,8 +146,7 @@ class Cache_Cozy_Tick_Node extends Timer_Node {
 		/** @var int|float|string|bool|null $raw_queued_at */
 		$raw_queued_at = $parameters['queued_at'] ?? 0;
 		$queued_at     = (int) $raw_queued_at;
-		// Read the job's own interval; fall back to the const so old/in-flight jobs
-		// that predate the threaded `interval` (or carry a malformed one) still drop correctly.
+		// Fall back to the const for old/in-flight jobs with a missing/malformed interval.
 		$raw_interval = $parameters['interval'] ?? self::INTERVAL_SECONDS;
 		$interval     = \is_numeric( $raw_interval ) ? (int) $raw_interval : self::INTERVAL_SECONDS;
 		if ( $queued_at > 0 && ( \time() - $queued_at ) >= $interval ) {
