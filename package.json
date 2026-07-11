@@ -1,6 +1,6 @@
 {
 	"name": "newspack-cache-cozy",
-	"version": "0.2.2",
+	"version": "0.2.3",
 	"private": true,
 	"description": "Refresh-ahead cache warmer for newspack-nodes.",
 	"author": "Automattic",
