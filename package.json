@@ -27,7 +27,8 @@
 	"lint-staged": {
 		"*.php": [
 			"phpcs",
-			"sh -c 'npm run lint:phpstan --silent'"
+			"sh -c 'npm run lint:phpstan --silent'",
+			"php scripts/lint-comment-length.php"
 		]
 	}
 }
