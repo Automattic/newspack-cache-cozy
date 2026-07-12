@@ -169,9 +169,9 @@ class Cache_Cozy_Tick_Node extends Timer_Node {
 			'category'     => 'Control',
 			'description'  => 'Queues a cache_cozy JobWorker job (default every 60s); self-starts in arguments(). Positional args: <interval_seconds> <path> <cold_groups>.',
 			'arguments'    => [
-				[ 'name' => 'interval_seconds', 'type' => 'int',    'default' => self::INTERVAL_SECONDS ],
-				[ 'name' => 'path',             'type' => 'string', 'default' => '/' ],
-				[ 'name' => 'cold_groups',      'type' => 'string', 'default' => '' ],
+				[ 'name' => 'interval_seconds', 'type' => 'int',    'default' => self::INTERVAL_SECONDS, 'description' => 'How often to enqueue a cache-warm job, in seconds (default 60).' ],
+				[ 'name' => 'path',             'type' => 'string', 'default' => '/', 'description' => 'URL path to keep warm (default / — the homepage).' ],
+				[ 'name' => 'cold_groups',      'type' => 'string', 'default' => '', 'description' => 'Comma-separated cache groups to warm; empty uses the drop-in default cold_groups().' ],
 			],
 			'commands'     => [],
 			'accepts_fill' => false,

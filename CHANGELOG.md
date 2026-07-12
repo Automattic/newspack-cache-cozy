@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`Cache_Cozy_Tick` node_schema arguments now carry descriptions** — `interval_seconds`, `path`, `cold_groups` — so the topology console shows a tooltip for each (consuming the substrate's `CtorField` tooltip wiring). A `NodeSchemaArgumentDescriptionsTest` gate fails if any argument lacks one.
+
 ## [0.2.3] - 2026-07-10
 
 **Requires newspack-nodes ≥ 0.34.0** (the release carrying the `Core` coercion-helper family).
