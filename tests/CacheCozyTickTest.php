@@ -156,24 +156,25 @@ class CacheCozyTickTest extends TestCase {
 	// ── handle_job(): stale-drop + warm ──────────────────────────────────────
 
 	public function test_handle_job_warms_when_fresh(): void {
-		Cache_Cozy_Tick_Node::handle_job( [ 'queued_at' => \time() ] );
+		Cache_Cozy_Tick_Node::handle_job( [ 'queued_at' => \time(), 'interval' => 60, 'path' => '/', 'cold_groups' => '' ] );
 
 		$this->assertCount( 1, $GLOBALS['_wp_test_remote_gets'], 'a fresh job must fire the warm loopback' );
 		$this->assertStringContainsString( 'cache_cozy_warm=', $GLOBALS['_wp_test_remote_gets'][0]['url'] );
 	}
 
-	public function test_handle_job_warms_when_queued_at_absent(): void {
-		// queued_at = 0 (missing) is treated as fresh (mirrors RemoteManager's
-		// `$queued_at > 0` guard) — only a positive, old timestamp is "stale".
-		Cache_Cozy_Tick_Node::handle_job( [] );
+	public function test_handle_job_drops_incomplete_envelope(): void {
+		// The sole producer (fire()) always emits the full {queued_at, interval,
+		// path, cold_groups} shape. A job missing any field is corrupt (or an old
+		// pre-migration replay) and is dropped, not warmed with guessed defaults.
+		Cache_Cozy_Tick_Node::handle_job( [ 'queued_at' => \time() ] );
 
-		$this->assertCount( 1, $GLOBALS['_wp_test_remote_gets'] );
+		$this->assertCount( 0, $GLOBALS['_wp_test_remote_gets'], 'an incomplete envelope must be dropped, not warmed' );
 	}
 
 	public function test_handle_job_drops_stale_request(): void {
 		// A job that sat in the queue >= one full interval: skip it — the next
 		// tick's job will warm. Must NOT fire the loopback.
-		Cache_Cozy_Tick_Node::handle_job( [ 'queued_at' => \time() - Cache_Cozy_Tick_Node::INTERVAL_SECONDS ] );
+		Cache_Cozy_Tick_Node::handle_job( [ 'queued_at' => \time() - Cache_Cozy_Tick_Node::INTERVAL_SECONDS, 'interval' => Cache_Cozy_Tick_Node::INTERVAL_SECONDS, 'path' => '/', 'cold_groups' => '' ] );
 
 		$this->assertCount( 0, $GLOBALS['_wp_test_remote_gets'], 'stale job must be dropped, not warmed' );
 	}
@@ -352,7 +353,7 @@ class CacheCozyTickTest extends TestCase {
 
 	public function test_handle_job_drops_stale_request_using_job_interval(): void {
 		// A 30s-interval job queued 31s ago is stale and must be dropped.
-		Cache_Cozy_Tick_Node::handle_job( [ 'queued_at' => \time() - 31, 'interval' => 30 ] );
+		Cache_Cozy_Tick_Node::handle_job( [ 'queued_at' => \time() - 31, 'interval' => 30, 'path' => '/', 'cold_groups' => '' ] );
 
 		$this->assertCount( 0, $GLOBALS['_wp_test_remote_gets'], 'stale-by-job-interval must be dropped' );
 	}
@@ -361,6 +362,7 @@ class CacheCozyTickTest extends TestCase {
 		Cache_Cozy_Tick_Node::handle_job(
 			[
 				'queued_at'   => \time(),
+				'interval'    => 60,
 				'path'        => '/events',
 				'cold_groups' => 'newspack_blocks,transient',
 			]
@@ -370,14 +372,6 @@ class CacheCozyTickTest extends TestCase {
 		$url = $GLOBALS['_wp_test_remote_gets'][0]['url'];
 		$this->assertStringContainsString( '/events', $url, 'handle_job must forward the path to the loopback URL' );
 		$this->assertStringContainsString( 'cache_cozy_groups=', $url, 'handle_job must forward cold_groups to the loopback URL' );
-	}
-
-	public function test_handle_job_falls_back_to_const_when_interval_absent(): void {
-		// No interval key (an old/in-flight job): fall back to the 60s const, so a
-		// 31s-old job is still fresh (31 < 60) and warms.
-		Cache_Cozy_Tick_Node::handle_job( [ 'queued_at' => \time() - 31 ] );
-
-		$this->assertCount( 1, $GLOBALS['_wp_test_remote_gets'], 'no interval key falls back to 60s; 31s is fresh' );
 	}
 
 	// ── arguments(): schema-driven interval + path + cold_groups ─────────────
