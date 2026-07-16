@@ -61,14 +61,14 @@ class Cache_Cozy_Tick_Node extends Timer_Node {
 	 * Empty string keeps every default; set_timer() (re)starts the _router heartbeat
 	 * hitchhike — the debounce is the real cadence gate, so the ~5s poll is plenty.
 	 *
-	 * @param string|null $args Raw positional argument string (null = getter).
+	 * @param list<string>|null $args Positional argument tokens (null = getter).
 	 */
-	public function arguments( ?string $args = null ): string {
+	public function arguments( ?array $args = null ): array {
 		if ( null === $args ) {
 			return $this->arguments;
 		}
 		$this->arguments = $args;
-		if ( '' !== $args ) {
+		if ( [] !== $args ) {
 			$this->parse_schema_args( $args );
 		}
 		$this->set_timer();

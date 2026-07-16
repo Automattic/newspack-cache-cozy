@@ -116,7 +116,7 @@ class CacheCozyTickTest extends TestCase {
 
 		$node = new Cache_Cozy_Tick_Node();
 		$node->name( 'cache-cozy:tick' );
-		$node->arguments( '' );
+		$node->arguments( [] );
 
 		$ref  = $this->reflection_property( \Newspack_Nodes\Node::class, 'registrations' );
 		$regs = $ref->getValue( $router );
@@ -229,10 +229,10 @@ class CacheCozyTickTest extends TestCase {
 
 		$node = new Cache_Cozy_Tick_Node();
 		$node->name( 'cache-cozy:tick' );
-		$node->arguments( '30' );
+		$node->arguments( [ '30' ] );
 
 		// No-arg call hits the getter branch (null === $args → return $this->arguments).
-		$this->assertSame( '30', $node->arguments() );
+		$this->assertSame( [ '30' ], $node->arguments() );
 	}
 
 	// ── arguments(): numeric arg sets the warm cadence, keeps router hitchhike ─
@@ -249,7 +249,7 @@ class CacheCozyTickTest extends TestCase {
 		$node = new Cache_Cozy_Tick_Node();
 		$node->name( 'cache-cozy:tick' );
 
-		$node->arguments( '30' );
+		$node->arguments( [ '30' ] );
 
 		$this->assertSame( 30, $this->interval_seconds( $node ), 'numeric arg sets the per-instance interval' );
 
@@ -276,7 +276,7 @@ class CacheCozyTickTest extends TestCase {
 		$node = new Cache_Cozy_Tick_Node();
 		$sink = new Capture_Sink_Node();
 		$node->name( 'cache-cozy:tick' );
-		$node->arguments( '5' );
+		$node->arguments( [ '5' ] );
 		$node->sink( $sink );
 
 		// Last enqueue 6s ago: with a 5s interval, the next fire MUST re-enqueue.
@@ -337,7 +337,7 @@ class CacheCozyTickTest extends TestCase {
 		$node = new Cache_Cozy_Tick_Node();
 		$sink = new Capture_Sink_Node();
 		$node->name( 'cache-cozy:tick' );
-		$node->arguments( '60 /events newspack_blocks' );
+		$node->arguments( [ '60', '/events', 'newspack_blocks' ] );
 		$node->sink( $sink );
 
 		$node->fire();
@@ -389,7 +389,7 @@ class CacheCozyTickTest extends TestCase {
 
 		$node = new Cache_Cozy_Tick_Node();
 		$node->name( 'cache-cozy:tick' );
-		$node->arguments( '120 /category/news newspack_blocks,transient' );
+		$node->arguments( [ '120', '/category/news', 'newspack_blocks,transient' ] );
 
 		$this->assertSame( 120, $this->interval_seconds( $node ) );
 		$this->assertSame( '/category/news', $this->path( $node ) );
@@ -402,7 +402,7 @@ class CacheCozyTickTest extends TestCase {
 
 		$node = new Cache_Cozy_Tick_Node();
 		$node->name( 'cache-cozy:tick' );
-		$node->arguments( '90' );
+		$node->arguments( [ '90' ] );
 
 		$this->assertSame( 90, $this->interval_seconds( $node ) );
 		$this->assertSame( '/', $this->path( $node ), 'path defaults to / when only interval is given' );

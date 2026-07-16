@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Migrated to the newspack-nodes token-array command contract.** `Cache_Cozy_Tick_Node::arguments()` now takes and returns a token array (`list<string>` argv) instead of a joined string, matching the substrate change (`<interval_seconds> <path> <cold_groups>` arrive as discrete tokens).
+
 ## [0.2.4] - 2026-07-13
 
 ### Added
