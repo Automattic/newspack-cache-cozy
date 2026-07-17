@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-07-16
+
 ### Changed
 
 - **`Cache_Cozy_Tick_Node::handle_job()` now requires the full job envelope.** The sole producer (`fire()`) always emits `{queued_at, interval, path, cold_groups}`; the handler dropped its `?? default` acceptance of old/incomplete envelopes and now drops (with a rate-limited notice) any job missing a required field instead of warming with guessed defaults. No live dead-letter segments carry the old shape.
