@@ -15,6 +15,7 @@
 		"lint:php": "phpcs",
 		"lint:js": "true",
 		"lint:scss": "true",
+		"lint:shell": "shellcheck scripts/pre-push scripts/*.sh",
 		"lint:phpstan": "vendor/bin/phpstan analyse --memory-limit=1G --no-progress",
 		"test:js": "true",
 		"test:js:coverage": "true"
@@ -26,9 +27,11 @@
 	},
 	"lint-staged": {
 		"*.php": [
-			"phpcs",
+			"./vendor/bin/phpcs",
 			"sh -c 'npm run lint:phpstan --silent'",
 			"php scripts/lint-comment-length.php"
-		]
+		],
+		"*.sh": "shellcheck",
+		"scripts/pre-push": "shellcheck"
 	}
 }
