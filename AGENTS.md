@@ -34,6 +34,10 @@ npm run lint:php          # phpcs
 npm run lint:phpstan      # phpstan (needs ../newspack-nodes checked out as a sibling)
 ```
 
+After adding/renaming a Node class, regenerate the classmap (`make_node` and
+the console palette read it): `composer build:autoloaders` (= `composer
+install --optimize-autoloader`) or `composer dump-autoload -o`.
+
 PHPStan resolves substrate symbols (`Timer_Node`, `Core`, `Message`) via `scanDirectories: ../newspack-nodes/includes` — the substrate must be checked out alongside this plugin to lint/analyze.
 
 ## Versioning & Release
