@@ -20,18 +20,13 @@ if ( \function_exists( 'posix_getuid' ) && 0 === \posix_getuid() ) {
 
 \define( 'ABSPATH', '/' );
 
-if ( ! function_exists( 'plugin_dir_path' ) ) {
-	function plugin_dir_path( string $file ): string {
-		return \dirname( $file ) . '/';
-	}
-}
-
 if ( ! function_exists( 'plugin_dir_url' ) ) {
 	function plugin_dir_url( string $file ): string {
 		return 'http://localhost/wp-content/plugins/' . basename( dirname( $file ) ) . '/';
 	}
 }
 
+// Overrides shared shim: add_filter records _wp_test_filters by priority.
 if ( ! function_exists( 'do_action' ) ) {
 	$GLOBALS['_wp_actions']      = [];
 	$GLOBALS['_wp_test_filters'] = [];
@@ -84,6 +79,7 @@ if ( ! class_exists( '\WP_Hook' ) ) {
 	}
 }
 
+// Overrides shared shims: array-params request + public-prop responses.
 if ( ! class_exists( '\WP_REST_Request' ) ) {
 	class WP_REST_Request {
 		private array $params = [];
@@ -114,55 +110,28 @@ if ( ! class_exists( '\WP_REST_Request' ) ) {
 		public function get_error_message(): string { return $this->message; }
 	}
 }
+// Overrides shared shim: routes keyed by namespace.route, not appended.
 if ( ! function_exists( 'register_rest_route' ) ) {
 	$GLOBALS['_rest_routes'] = [];
 	function register_rest_route( string $namespace, string $route, array $args ): void {
 		$GLOBALS['_rest_routes'][ $namespace . $route ] = $args;
 	}
 }
+// Overrides shared shim: single _current_user_can bool, not per-cap map.
 if ( ! function_exists( 'current_user_can' ) ) {
 	function current_user_can( string $cap ): bool {
 		return $GLOBALS['_current_user_can'] ?? false;
 	}
 }
 
-if ( ! function_exists( 'is_wp_error' ) ) {
-	function is_wp_error( mixed $thing ): bool {
-		return $thing instanceof \WP_Error;
-	}
-}
-
-if ( ! function_exists( 'sanitize_text_field' ) ) {
-	function sanitize_text_field( mixed $v ): string {
-		if ( ! is_string( $v ) ) {
-			return '';
-		}
-		// Match WP: strip control chars (incl. NUL + newlines) + tags + collapse whitespace.
-		$v = \strip_tags( $v );
-		$v = \preg_replace( '/[\x00-\x1F\x7F]/', '', $v ) ?? $v;
-		$v = \preg_replace( '/\s+/', ' ', $v ) ?? $v;
-		return \trim( $v );
-	}
-}
-
+// Overrides shared shim: reads _current_user_id, casts to int.
 if ( ! function_exists( 'get_current_user_id' ) ) {
 	function get_current_user_id(): int {
 		return (int) ( $GLOBALS['_current_user_id'] ?? 0 );
 	}
 }
 
-if ( ! function_exists( 'wp_create_nonce' ) ) {
-	function wp_create_nonce( string $action ): string {
-		return 'nonce_' . substr( md5( $action ), 0, 10 );
-	}
-}
-
-if ( ! function_exists( 'rest_url' ) ) {
-	function rest_url( string $path = '' ): string {
-		return 'http://localhost/wp-json/' . ltrim( $path, '/' );
-	}
-}
-
+// Overrides shared shim: variadic append capture, fixed return slug.
 if ( ! function_exists( 'add_menu_page' ) ) {
 	function add_menu_page( ...$args ): string {
 		$GLOBALS['_admin_menu_pages'][] = $args;
@@ -170,6 +139,7 @@ if ( ! function_exists( 'add_menu_page' ) ) {
 	}
 }
 
+// Overrides shared shim: variadic append capture, fixed return slug.
 if ( ! function_exists( 'add_submenu_page' ) ) {
 	function add_submenu_page( ...$args ): string {
 		$GLOBALS['_admin_submenu_pages'][] = $args;
@@ -177,12 +147,14 @@ if ( ! function_exists( 'add_submenu_page' ) ) {
 	}
 }
 
+// Overrides shared shim: variadic append (shared keys by handle).
 if ( ! function_exists( 'wp_enqueue_script' ) ) {
 	function wp_enqueue_script( ...$args ): void {
 		$GLOBALS['_enqueued_scripts'][] = $args;
 	}
 }
 
+// Overrides shared shim: variadic append (shared keys by handle).
 if ( ! function_exists( 'wp_localize_script' ) ) {
 	function wp_localize_script( ...$args ): bool {
 		$GLOBALS['_localized_scripts'][] = $args;
@@ -190,6 +162,7 @@ if ( ! function_exists( 'wp_localize_script' ) ) {
 	}
 }
 
+// Overrides shared shim: adds the _test_get_option_hook seam.
 if ( ! function_exists( 'get_option' ) ) {
 	$GLOBALS['_wp_options'] = [];
 	function get_option( string $key, mixed $default = false ): mixed {
@@ -229,6 +202,7 @@ if ( ! function_exists( 'get_option' ) ) {
 	}
 }
 
+// Overrides shared shim: 403 when logged in (shared: always 401).
 if ( ! function_exists( 'rest_authorization_required_code' ) ) {
 	function rest_authorization_required_code(): int {
 		return ( get_current_user_id() > 0 ) ? 403 : 401;
@@ -263,42 +237,16 @@ if ( ! function_exists( 'rest_sanitize_boolean' ) ) {
 	}
 }
 
-if ( ! function_exists( 'absint' ) ) {
-	function absint( mixed $v ): int {
-		return \abs( (int) $v );
-	}
-}
-
-if ( ! function_exists( 'wp_unslash' ) ) {
-	function wp_unslash( mixed $value ): mixed {
-		if ( \is_string( $value ) ) {
-			return \stripslashes( $value );
-		}
-		return $value;
-	}
-}
-
 if ( ! function_exists( 'wp_hash' ) ) {
 	function wp_hash( string $data, string $scheme = 'auth' ): string {
 		return \hash( 'sha256', wp_salt( $scheme ) . $data );
 	}
 }
 
+// Overrides shared shim: pairs with wp_create_nonce, no nonce map.
 if ( ! function_exists( 'wp_verify_nonce' ) ) {
 	function wp_verify_nonce( string $nonce, string $action ): bool {
 		return $nonce === ( 'nonce_' . substr( md5( $action ), 0, 10 ) );
-	}
-}
-
-if ( ! function_exists( 'esc_url_raw' ) ) {
-	function esc_url_raw( string $url ): string {
-		return \filter_var( $url, FILTER_SANITIZE_URL ) ?: '';
-	}
-}
-
-if ( ! function_exists( 'esc_html' ) ) {
-	function esc_html( string $value ): string {
-		return \htmlspecialchars( $value, ENT_QUOTES, 'UTF-8' );
 	}
 }
 
@@ -321,6 +269,7 @@ if ( ! function_exists( 'wp_remote_get' ) ) {
 	}
 }
 
+// Overrides shared shim: URL-keyed responses + _wp_test_remote_posts.
 if ( ! function_exists( 'wp_remote_post' ) ) {
 	function wp_remote_post( string $url, array $args = [] ): mixed {
 		// Capture all calls so RemoteManager tests can assert outbound traffic.
@@ -346,6 +295,7 @@ if ( ! function_exists( 'home_url' ) ) {
 	}
 }
 
+// Overrides shared shim: polymorphic (key,value,url) form like WP core.
 if ( ! function_exists( 'add_query_arg' ) ) {
 	// Polymorphic like WP core: add_query_arg( array $params, string $url ) or
 	// add_query_arg( string $key, string $value, string $url ).
@@ -372,24 +322,7 @@ if ( ! function_exists( 'wp_parse_url' ) ) {
 	}
 }
 
-if ( ! function_exists( 'wp_remote_retrieve_response_code' ) ) {
-	function wp_remote_retrieve_response_code( mixed $response ): int {
-		if ( \is_array( $response ) && isset( $response['response']['code'] ) ) {
-			return (int) $response['response']['code'];
-		}
-		return 0;
-	}
-}
-
-if ( ! function_exists( 'wp_remote_retrieve_body' ) ) {
-	function wp_remote_retrieve_body( mixed $response ): string {
-		if ( \is_array( $response ) && isset( $response['body'] ) ) {
-			return (string) $response['body'];
-		}
-		return '';
-	}
-}
-
+// Overrides shared shim: _wp_transients store + delete_transient.
 if ( ! function_exists( 'set_transient' ) ) {
 	$GLOBALS['_wp_transients'] = [];
 	function set_transient( string $key, mixed $value, int $ttl = 0 ): bool {
@@ -419,12 +352,6 @@ if ( ! function_exists( 'wp_generate_uuid4' ) ) {
 	}
 }
 
-if ( ! function_exists( 'wp_json_encode' ) ) {
-	function wp_json_encode( mixed $data, int $options = 0, int $depth = 512 ): string|false {
-		return \json_encode( $data, $options, $depth );
-	}
-}
-
 if ( ! function_exists( 'wp_parse_args' ) ) {
 	function wp_parse_args( $args, array $defaults = [] ): array {
 		if ( is_object( $args ) ) {
@@ -440,33 +367,19 @@ if ( ! function_exists( 'trailingslashit' ) ) {
 	}
 }
 
+// Overrides shared shim: false (shared returns true for substrate suite).
 if ( ! function_exists( 'is_admin' ) ) {
 	function is_admin(): bool {
 		return false;
 	}
 }
 
-if ( ! function_exists( 'current_filter' ) ) {
-	function current_filter(): string {
-		return $GLOBALS['_wp_test_current_filter'] ?? '';
-	}
-}
-
-if ( ! function_exists( 'status_header' ) ) {
-	// Track every status_header() emission so tests can assert on the
-	// IPC-202 / lazy-built `_http` paths of HTTP_In.
-	// Mirrors the substrate's bootstrap; needed since
-	// HTTP_In::ensure_request_graph() now installs a
-	// production `_http` Node that calls \status_header() directly.
-	$GLOBALS['_wp_test_status_headers'] = [];
-	function status_header( int $code ): void {
-		$GLOBALS['_wp_test_status_headers'][] = $code;
-	}
-}
-
 if ( ! defined( 'WP_PLUGIN_DIR' ) ) {
 	define( 'WP_PLUGIN_DIR', '/tmp/test-wp-plugins' );
 }
+
+// Canonical shared WP shims from the substrate; local overrides above win.
+require_once \dirname( __DIR__, 2 ) . '/newspack-nodes/tests/Helpers/wp-shims.php';
 
 // The substrate this plugin builds on — gives Timer_Node, Core, Message,
 // Router_Node, Event_Framework, Command_Interpreter_Node. Loaded as the sibling
