@@ -44,9 +44,15 @@ $newspack_cache_cozy_load = static function (): void {
 \add_action(
 	'plugins_loaded',
 	static function () use ( $newspack_cache_cozy_load ): void {
-		if ( \class_exists( '\Newspack_Nodes\Timer_Node' ) ) {
-			$newspack_cache_cozy_load();
+		if ( ! \class_exists( '\Newspack_Nodes\Timer_Node' ) ) {
+			return;
 		}
+		// Substrate handshake: dormant + notice below the floor (API is 0.54+).
+		if ( \method_exists( '\\Newspack_Nodes\\Bootstrap', 'version_at_least' )
+			&& ! \Newspack_Nodes\Bootstrap::version_at_least( '0.54.0', 'Newspack Cache Cozy' ) ) {
+			return;
+		}
+		$newspack_cache_cozy_load();
 	},
 	11
 );

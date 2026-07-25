@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Substrate version handshake at boot: on a substrate older than 0.54.0 the
+  plugin goes dormant with an admin notice (via the substrate's
+  `Bootstrap::version_at_least()`) instead of fataling on a missing API.
+  No-op on substrates that predate the handshake API (nodes < 0.54.0).
+
 ## [0.3.1] - 2026-07-16
 
 ### Changed

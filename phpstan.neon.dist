@@ -42,3 +42,13 @@ parameters:
         # at a newspack-nodes checkout so those resolve with real types (here:
         # the sibling clone; a third party points this at their own checkout).
         - ../newspack-nodes/includes
+    ignoreErrors:
+        # The boot version handshake guards the RUNTIME substrate, which can be
+        # older than the sibling checkout this analysis reads. The sibling
+        # always has version_at_least, so the presence check reads always-true
+        # here — but deployment skew is the very case the guard exists for.
+        -
+            identifier: function.alreadyNarrowedType
+            message: '#version_at_least#'
+            path: newspack-cache-cozy.php
+            count: 1
