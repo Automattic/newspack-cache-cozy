@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **The vendored `reorder-node-methods` tooling now passes the comment-length
+  gate.** Function-level prose moved into docblocks, inline prose condensed to
+  one line; four algorithm notes that genuinely need the length carry
+  `@longform`. No behavior change — the tool's own test still passes 38/38.
+
+
 ## [0.4.2] - 2026-07-31
 
 ### Added
