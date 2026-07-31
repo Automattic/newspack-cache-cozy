@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`lint-docs.sh` is a shared pre-push gate.** The doc-drift lint was
+  substrate-only; it now ships to every plugin via `sync-shared-scripts.sh` and
+  runs from each `pre-push`. It caught three `make_node` examples in
+  event-logger-nodes documenting a retention arg list the shipped topology never
+  passes.
+
+
 ## [0.4.3] - 2026-07-31
 
 ### Changed
