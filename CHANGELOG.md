@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-07-31
+
+### Changed
+
+- The comment-length lint scans the whole tree rather than only staged files,
+  so an unstaged violation can no longer reach a commit.
+
 ## [0.4.0] - 2026-07-24
 
 ### Added
