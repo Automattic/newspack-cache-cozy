@@ -27,7 +27,7 @@ WordPress VIP Go (enforced by `phpcs.xml.dist`): `snake_case`, Yoda conditions, 
 ## Build / Test
 
 ```bash
-composer install          # vendor/ (phpunit, phpcs, phpstan) + installs git hooks via cghooks
+composer install          # vendor/ (phpunit, phpcs, phpstan) + points git at scripts/ for hooks
 
 cd tests && ../vendor/bin/phpunit --enforce-time-limit   # unit tests
 npm run lint:php          # phpcs
@@ -40,9 +40,23 @@ install --optimize-autoloader`) or `composer dump-autoload -o`.
 
 PHPStan resolves substrate symbols (`Timer_Node`, `Core`, `Message`) via `scanDirectories: ../newspack-nodes/includes` — the substrate must be checked out alongside this plugin to lint/analyze.
 
+### Git hooks
+
+Hooks are the tracked files in `scripts/` (`pre-commit`, `commit-msg`, `pre-push`),
+reached via `core.hooksPath`, which `composer install` sets:
+
+```bash
+git config core.hooksPath scripts    # what composer's post-install-cmd runs
+```
+
+A clone that has never run `composer install` has no hooks at all. `pre-commit`
+first runs `scripts/sync-shared-scripts.sh`, which refreshes this plugin's copy
+of the shared tooling from `../newspack-nodes/scripts/` when that sibling is
+checked out — edit shared scripts THERE, not here.
+
 ## Versioning & Release
 
-Version lives in three places: the `Version:` header + `NEWSPACK_CACHE_COZY_VERSION` constant in `newspack-cache-cozy.php`, and `"version"` in `package.json`. Don't hand-edit — the dndocker `tools/bump-cache-cozy-version.sh` rewrites all three.
+Version lives in three places: the `Version:` header + `NEWSPACK_CACHE_COZY_VERSION` constant in `newspack-cache-cozy.php`, and `"version"` in `package.json`. Don't hand-edit — `./scripts/bump-version.sh` rewrites all three.
 
 Releases are automated by GitHub Actions (`.github/workflows/release.yml`): pushing a `v<major>.<minor>.<patch>` tag runs `npm run release:archive` (= `build-release.sh`), extracts the matching `CHANGELOG.md` section as the notes, and publishes the GitHub Release with **both** `release/newspack-cache-cozy.zip` and the `release/01-newspack-cache-cozy.php` mu-plugin drop-in attached. You only bump, changelog, commit, tag, push.
 
