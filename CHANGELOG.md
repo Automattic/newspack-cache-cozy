@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Dropped the vendored `test-reorder-node-methods.sh`. This plugin has no
+  `src/`, so it never received the `reorder-node-methods.js` twin that most of
+  that suite shells out to — the tests could only fail, and nothing ran them.
+  `sync-shared-scripts.sh` skips the test wherever it already skips the twin.
+
 ## [0.4.4] - 2026-07-31
 
 ### Changed
