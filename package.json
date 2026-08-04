@@ -28,6 +28,7 @@
 	"lint-staged": {
 		"*.php": [
 			"./vendor/bin/phpcs",
+			"php scripts/reorder-node-methods.php --check",
 			"sh -c 'npm run lint:phpstan --silent'",
 			"php scripts/lint-comment-length.php"
 		],
