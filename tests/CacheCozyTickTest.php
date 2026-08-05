@@ -9,6 +9,7 @@
 
 namespace Newspack_Cache_Cozy\Tests;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use Newspack_Cache_Cozy\Cache_Cozy;
 use Newspack_Cache_Cozy\Cache_Cozy_Tick_Node;
 use Newspack_Nodes\Tests\TestCase;
@@ -16,7 +17,6 @@ use Newspack_Nodes\Core;
 use Newspack_Nodes\Event_Framework;
 use Newspack_Nodes\Router_Node;
 use Newspack_Nodes\Tests\Capture_Sink_Node;
-use PHPUnit\Framework\Attributes\CoversClass;
 
 #[CoversClass( Cache_Cozy_Tick_Node::class )]
 class CacheCozyTickTest extends TestCase {

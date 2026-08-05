@@ -11,12 +11,12 @@
 
 namespace Newspack_Cache_Cozy\Tests;
 
-use Newspack_Cache_Cozy\Cache_Cozy;
-use Newspack_Cache_Cozy\Cold_Read_Object_Cache;
-use Newspack_Nodes\Tests\TestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
+use Newspack_Cache_Cozy\Cache_Cozy;
+use Newspack_Cache_Cozy\Cold_Read_Object_Cache;
+use Newspack_Nodes\Tests\TestCase;
 
 #[CoversClass( Cache_Cozy::class )]
 class CacheCozyTest extends TestCase {

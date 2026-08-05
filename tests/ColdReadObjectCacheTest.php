@@ -15,9 +15,9 @@
 
 namespace Newspack_Cache_Cozy\Tests;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use Newspack_Cache_Cozy\Cold_Read_Object_Cache;
 use Newspack_Nodes\Tests\TestCase;
-use PHPUnit\Framework\Attributes\CoversClass;
 
 #[CoversClass( Cold_Read_Object_Cache::class )]
 class ColdReadObjectCacheTest extends TestCase {
