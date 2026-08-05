@@ -32,6 +32,9 @@
 			"sh -c 'npm run lint:phpstan --silent'",
 			"php scripts/lint-comment-length.php"
 		],
+		"includes/**/*.php": [
+			"php scripts/reorder-node-methods.php --all-classes --check"
+		],
 		"*.sh": "shellcheck",
 		"scripts/pre-push": "shellcheck"
 	}
