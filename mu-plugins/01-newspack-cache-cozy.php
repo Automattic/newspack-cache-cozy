@@ -351,16 +351,16 @@ class Cache_Cozy {
 		if ( ! self::is_warm_request( $_GET, self::secret() ) ) {
 			return;
 		}
-		// Tag the request so the profiler/RequestBuilder drops this (intentionally
-		// expensive) render from timing stats, the way worker requests are excluded.
+		// @longform Tag the request so the profiler/RequestBuilder drops this (intentionally
+		// expensive) render from timing stats, as worker requests are.
 		$_SERVER['NEWSPACK_NODES_WORKER_TYPE'] = 'cache-cozy';
-		// Let the loopback reach the real homepage rather than an access-gate
-		// login page (e.g. the Password Protected plugin would 302 it otherwise).
+		// @longform Let the loopback reach the real homepage rather than an access-gate
+		// login page (Password Protected would 302 it otherwise).
 		\add_filter( 'password_protected_is_active', static fn (): bool => false );
-		// The loopback's Authorization header is only to get past the edge/page
+		// @longform The loopback's Authorization header is only to get past the edge/page
 		// cache; in WP the warm render must be logged-OUT, or Newspack disables
-		// block caching for logged-in editors and we'd rebuild but cache nothing.
-		// Force anonymous, overriding any app-password auth the header triggers.
+		// block caching for logged-in editors: we'd rebuild but cache none.
+		// Force anonymous over any app-password auth the header triggers.
 		\add_filter( 'determine_current_user', static fn () => 0, PHP_INT_MAX );
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- the secret param (validated above) IS the auth.
 		$groups_override = self::groups_from_request( $_GET );
@@ -400,7 +400,7 @@ class Cache_Cozy {
 			$groups = (array) \constant( 'NEWSPACK_CACHE_COZY_COLD_GROUPS' );
 		}
 
-		// Narrow the configured mixed-array down to the string elements is_cold() consumes.
+		// Narrow the mixed-array to the strings is_cold() consumes.
 		return \array_values(
 			\array_filter(
 				$groups,
@@ -417,7 +417,7 @@ class Cache_Cozy {
 	 * @return bool
 	 */
 	public static function is_warm_request( array $get, string $expected_secret ): bool {
-		// Empty secret never matches, so an unconfigured site can't be warm-tricked.
+		// Empty secret never matches: an unconfigured site can't be tricked.
 		if ( '' === $expected_secret || ! isset( $get['cache_cozy_warm'] ) || ! \is_string( $get['cache_cozy_warm'] ) ) {
 			return false;
 		}
@@ -567,7 +567,7 @@ class Cache_Cozy {
 	 * @param string $cold_groups Comma-joined cold-group override (empty = drop-in default).
 	 */
 	public static function run_tick( string $path = '/', string $cold_groups = '' ): void {
-		// Single-flight: skip if a prior render is still in flight (the lock
+		// @longform Single-flight: skip if a prior render is still in flight (the lock
 		// also auto-expires, so a crashed render can't wedge the warmer).
 		if ( \get_transient( self::LOCK ) ) {
 			return;
@@ -581,13 +581,13 @@ class Cache_Cozy {
 			// phpcs:ignore WordPressVIPMinimum.Performance.RemoteRequestTimeout.timeout_timeout -- background cron must outlast the ~6.5s cold render.
 			'timeout'   => 20,
 			'blocking'  => true,
-			// Verify TLS by default (the loopback hits the public home_url host);
+			// @longform Verify TLS by default (the loopback hits the public home_url host);
 			// only self-signed-cert dev environments opt out via wp-config.
 			'sslverify' => $sslverify,
 
 		];
-		// Authenticate the loopback (application password) so the edge/page cache
-		// forwards to PHP for a real render instead of serving a cached homepage.
+		// @longform Authenticate the loopback (application password) so the edge/page cache
+		// forwards to PHP for a real render, not a cached homepage.
 		$auth = self::auth_header();
 		if ( '' !== $auth ) {
 			$args['headers'] = [ 'Authorization' => $auth ];
@@ -596,7 +596,7 @@ class Cache_Cozy {
 		$result = \wp_remote_get( self::warm_url( $path, $cold_groups ), $args );
 		\delete_transient( self::LOCK );
 
-		// Surface loopback failures (e.g. an unroutable host) instead of swallowing them.
+		// Surface loopback failures (an unroutable host) rather than swallow.
 		if ( \is_wp_error( $result ) ) {
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			\error_log( '[newspack-cache-cozy] loopback failed: ' . $result->get_error_message() );
@@ -604,7 +604,7 @@ class Cache_Cozy {
 	}
 }
 
-// Install the cold-read decorator if this request is the warmer's own loopback
+// @longform Install the cold-read decorator if this request is the warmer's own loopback
 // (before any plugin reads the cache) and register the cron handler so a
 // manually-scheduled `newspack_cache_cozy_tick` is runnable. Tests define
 // NEWSPACK_CACHE_COZY_SKIP_BOOT to load the classes alone.
