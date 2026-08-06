@@ -320,7 +320,7 @@ class Cache_Cozy {
 	public static function register(): void {
 		self::maybe_install_for_request();
 		\add_action( self::CRON_HOOK, [ self::class, 'run_tick' ] );
-		\add_filter( 'cron_schedules', [ self::class, 'register_cron_schedule' ] ); // phpcs:ignore WordPress.WP.CronInterval -- intentional 60s warmer cadence (matches the substrate supervisor's minute tick).
+		\add_filter( 'cron_schedules', [ self::class, 'register_cron_schedule' ] ); // phpcs:ignore WordPress.WP.CronInterval -- intentional 60s warmer cadence (matches the substrate reconcile pass's minute tick).
 	}
 
 	/**

@@ -4,7 +4,7 @@
  *
  * Queues a `cache_cozy` JobWorker job every INTERVAL_SECONDS from inside a
  * long-lived worker, replacing the unreliable wp-cron trigger (which competes
- * with the supervisor and every other minute-cron for a slot). The tick
+ * with the reconcile pass and every other minute-cron for a slot). The tick
  * hitchhikes `_router`'s ~5s TIMER heartbeat — the worker's own drain loop, not
  * wp-cron — and debounces to the interval, so cadence is immune to cron
  * contention.
