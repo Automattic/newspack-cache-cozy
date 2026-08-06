@@ -12,8 +12,8 @@
 		"fix:js": "true",
 		"fix:scss": "true",
 		"format": "true",
-		"lint:php": "phpcs && php scripts/lint-comment-length.php .",
-		"lint:js": "true && node scripts/lint-comment-length.mjs .",
+		"lint:php": "phpcs && php scripts/lint-comments.php .",
+		"lint:js": "true && node scripts/lint-comments.mjs .",
 		"lint:scss": "true",
 		"lint:shell": "shellcheck scripts/pre-push scripts/*.sh",
 		"lint:phpstan": "vendor/bin/phpstan analyse --memory-limit=1G --no-progress",
@@ -30,7 +30,7 @@
 			"./vendor/bin/phpcs",
 			"php scripts/reorder-node-methods.php --check",
 			"sh -c 'npm run lint:phpstan --silent'",
-			"php scripts/lint-comment-length.php"
+			"php scripts/lint-comments.php"
 		],
 		"includes/**/*.php": [
 			"php scripts/reorder-node-methods.php --all-classes --check"
