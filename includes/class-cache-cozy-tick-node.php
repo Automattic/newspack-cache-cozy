@@ -32,7 +32,7 @@ if ( ! \defined( 'ABSPATH' ) ) {
 }
 
 class Cache_Cozy_Tick_Node extends Timer_Node {
-	// Positional args parsed via node_schema().
+	/** Positional args parsed via node_schema(). */
 	use Schema_Reflection;
 
 	/** DEFAULT tick cadence + the static handler's stale-drop fallback (when a job carries no `interval`). */
