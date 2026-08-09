@@ -7,7 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.7] - 2026-08-09
+
 ### Changed
+
+- Generic types in docblocks carry no space after the comma, matching the other
+  plugins. cache-cozy was not in the original sweep, so syncing the rule
+  surfaced real spaced types here; the mu-plugin also takes the canonical method
+  order the gate wanted once it was staged.
+
+- Shared tooling synced from newspack-nodes: `collapse_generics` no longer
+  rewrites prose whose angle brackets balance, nor lets an unbalanced `<` hide a
+  real generic from the gate.
 
 - **Blank-line runs are collapsed on commit.** `scripts/fix-blank-lines.php`
   joins the shared tooling and runs in `lint-staged` after the comment gate. It
