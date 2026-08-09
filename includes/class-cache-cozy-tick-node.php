@@ -124,11 +124,11 @@ class Cache_Cozy_Tick_Node extends Timer_Node {
 	 * Add the `cache_cozy` handler to the JobWorker's local-handler map.
 	 *
 	 * @param mixed $handlers Existing handlers (filter boundary — coerced to array).
-	 * @return array<string, mixed>
+	 * @return array<string,mixed>
 	 */
 	public static function register_handler( $handlers ): array {
 		// Filter-boundary value; handler maps are string-keyed by design.
-		/** @var array<string, mixed> $handlers */
+		/** @var array<string,mixed> $handlers */
 		$handlers = Core::arr( $handlers );
 		$handlers[ self::JOB_HANDLER ] = [ self::class, 'handle_job' ];
 		return $handlers;
@@ -140,7 +140,7 @@ class Cache_Cozy_Tick_Node extends Timer_Node {
 	 * skip the stale one). There is no uniform stale-drop in JobWorker — each
 	 * handler enforces its own age (cf. RemoteManager::STALE_THRESHOLD = 600s).
 	 *
-	 * @param array<string, mixed> $parameters Job parameters (`queued_at`).
+	 * @param array<string,mixed> $parameters Job parameters (`queued_at`).
 	 */
 	public static function handle_job( array $parameters ): void {
 		if ( ! isset( $parameters['queued_at'], $parameters['interval'], $parameters['path'], $parameters['cold_groups'] ) ) {

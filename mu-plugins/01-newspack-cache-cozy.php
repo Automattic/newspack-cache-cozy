@@ -34,10 +34,10 @@ class Cold_Read_Object_Cache {
 	 */
 	private $real;
 
-	/** @var array<int, string> Cold-group name prefixes (see is_cold). */
+	/** @var array<int,string> Cold-group name prefixes (see is_cold). */
 	private array $cold;
 
-	/** @var array<string, array<string, bool>> Now-warm group/key pairs. */
+	/** @var array<string,array<string,bool>> Now-warm group/key pairs. */
 	private array $warm = [];
 
 	/**
@@ -47,25 +47,6 @@ class Cold_Read_Object_Cache {
 	public function __construct( $real, array $cold_groups ) {
 		$this->real = $real;
 		$this->cold = \array_values( $cold_groups );
-	}
-
-	/**
-	 * Whether reads on this group must miss. Matches a cold group exactly OR a
-	 * derived "{group}-…" variant: Newspack's block cache splits into
-	 * `newspack_blocks-post-{ID}` / `newspack_blocks-feed` groups (a static-Page
-	 * homepage uses the per-post one), so cooling `newspack_blocks` must cool
-	 * those too. The `-` separator keeps an unrelated `newspack_blocksX` warm.
-	 *
-	 * @param string $group Cache group.
-	 * @return bool
-	 */
-	private function is_cold( string $group ): bool {
-		foreach ( $this->cold as $g ) {
-			if ( $group === $g || \str_starts_with( $group, $g . '-' ) ) {
-				return true;
-			}
-		}
-		return false;
 	}
 
 	/**
@@ -91,7 +72,7 @@ class Cold_Read_Object_Cache {
 	 * @param array<int|string> $keys  Cache keys.
 	 * @param string            $group Cache group.
 	 * @param bool              $force Whether to force a refetch.
-	 * @return array<int|string, mixed>
+	 * @return array<int|string,mixed>
 	 */
 	public function get_multiple( $keys, $group = '', $force = false ) {
 		if ( ! $this->is_cold( $group ) ) {
@@ -116,6 +97,39 @@ class Cold_Read_Object_Cache {
 		}
 
 		return $results;
+	}
+
+	/**
+	 * Returns true after a group/key combination has been set().
+	 *
+	 * @param int|string $key   Cache key.
+	 * @param string     $group Cache group.
+	 * @return bool
+	 */
+	private function is_warm( $key, string $group ): bool {
+		if ( isset( $this->warm[$group] ) && isset( $this->warm[$group][(string) $key] ) ) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Whether reads on this group must miss. Matches a cold group exactly OR a
+	 * derived "{group}-…" variant: Newspack's block cache splits into
+	 * `newspack_blocks-post-{ID}` / `newspack_blocks-feed` groups (a static-Page
+	 * homepage uses the per-post one), so cooling `newspack_blocks` must cool
+	 * those too. The `-` separator keeps an unrelated `newspack_blocksX` warm.
+	 *
+	 * @param string $group Cache group.
+	 * @return bool
+	 */
+	private function is_cold( string $group ): bool {
+		foreach ( $this->cold as $g ) {
+			if ( $group === $g || \str_starts_with( $group, $g . '-' ) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -172,10 +186,10 @@ class Cold_Read_Object_Cache {
 	/**
 	 * Multi-set through; successful writes become readable during this warm render.
 	 *
-	 * @param array<int|string, mixed> $data   Cache key/value pairs.
+	 * @param array<int|string,mixed> $data   Cache key/value pairs.
 	 * @param string                   $group  Cache group.
 	 * @param int                      $expire TTL in seconds.
-	 * @return array<int|string, bool>
+	 * @return array<int|string,bool>
 	 */
 	public function set_multiple( array $data, $group = '', $expire = 0 ): array {
 		$results = $this->real->set_multiple( $data, $group, $expire );
@@ -186,10 +200,10 @@ class Cold_Read_Object_Cache {
 	/**
 	 * Multi-add through; successful writes become readable during this warm render.
 	 *
-	 * @param array<int|string, mixed> $data   Cache key/value pairs.
+	 * @param array<int|string,mixed> $data   Cache key/value pairs.
 	 * @param string                   $group  Cache group.
 	 * @param int                      $expire TTL in seconds.
-	 * @return array<int|string, bool>
+	 * @return array<int|string,bool>
 	 */
 	public function add_multiple( array $data, $group = '', $expire = 0 ): array {
 		$results = $this->real->add_multiple( $data, $group, $expire );
@@ -198,17 +212,18 @@ class Cold_Read_Object_Cache {
 	}
 
 	/**
-	 * Returns true after a group/key combination has been set().
+	 * Marks successful bulk write keys warm.
 	 *
-	 * @param int|string $key   Cache key.
-	 * @param string     $group Cache group.
-	 * @return bool
+	 * @param array<int|string,bool> $results Per-key write results.
+	 * @param string                  $group   Cache group.
+	 * @return void
 	 */
-	private function is_warm( $key, string $group ): bool {
-		if ( isset( $this->warm[$group] ) && isset( $this->warm[$group][(string) $key] ) ) {
-			return true;
+	private function set_warm_results( array $results, string $group ): void {
+		foreach ( $results as $key => $result ) {
+			if ( $result ) {
+				$this->set_warm( $key, $group );
+			}
 		}
-		return false;
 	}
 
 	/**
@@ -223,21 +238,6 @@ class Cold_Read_Object_Cache {
 			$this->warm[$group] = [];
 		}
 		$this->warm[$group][(string) $key] = true;
-	}
-
-	/**
-	 * Marks successful bulk write keys warm.
-	 *
-	 * @param array<int|string, bool> $results Per-key write results.
-	 * @param string                  $group   Cache group.
-	 * @return void
-	 */
-	private function set_warm_results( array $results, string $group ): void {
-		foreach ( $results as $key => $result ) {
-			if ( $result ) {
-				$this->set_warm( $key, $group );
-			}
-		}
 	}
 
 	/**
@@ -323,24 +323,6 @@ class Cache_Cozy {
 		\add_filter( 'cron_schedules', [ self::class, 'register_cron_schedule' ] ); // phpcs:ignore WordPress.WP.CronInterval -- intentional 60s warmer cadence (matches the substrate reconcile pass's minute tick).
 	}
 
-	/**
-	 * Register the warmer's own 60s cron interval so `wp cron event schedule
-	 * newspack_cache_cozy_tick now newspack_cache_cozy_minute` works standalone —
-	 * no reliance on newspack-nodes' `newspack_nodes_minute` being loaded.
-	 *
-	 * @param array<string, mixed> $schedules Existing cron schedules.
-	 * @return array<string, mixed>
-	 */
-	public static function register_cron_schedule( array $schedules ): array {
-		if ( ! isset( $schedules[ self::CRON_SCHEDULE ] ) ) {
-			$schedules[ self::CRON_SCHEDULE ] = [
-				'interval' => 60,
-				'display'  => 'Every Minute (Cache Cozy)',
-			];
-		}
-		return $schedules;
-	}
-
 	/** Install the cold-read decorator iff this request is the warmer's own loopback. */
 	public static function maybe_install_for_request(): void {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- the secret param IS the auth.
@@ -368,66 +350,9 @@ class Cache_Cozy {
 	}
 
 	/**
-	 * Parse a secret-gated `cache_cozy_groups` query param into a clean string[],
-	 * or null when absent (caller falls back to the global cold_groups()).
-	 *
-	 * @param array<array-key, mixed> $get The request query params ($_GET).
-	 * @return array<int, string>|null
-	 */
-	private static function groups_from_request( array $get ): ?array {
-		if ( ! isset( $get['cache_cozy_groups'] ) || ! \is_string( $get['cache_cozy_groups'] ) ) {
-			return null;
-		}
-		$out = [];
-		foreach ( \explode( ',', $get['cache_cozy_groups'] ) as $group ) {
-			$group = \preg_replace( '/[^a-z0-9_-]/i', '', \trim( $group ) );
-			if ( null !== $group && '' !== $group ) {
-				$out[] = $group;
-			}
-		}
-		return [] === $out ? null : $out;
-	}
-
-	/**
-	 * Object-cache groups the warm render forces cold so the site rebuilds them.
-	 * Define NEWSPACK_CACHE_COZY_COLD_GROUPS in wp-config.php to override.
-	 *
-	 * @return array<int, string>
-	 */
-	public static function cold_groups(): array {
-		$groups = [ 'newspack_blocks', 'transient', 'site-transient' ];
-		if ( \defined( 'NEWSPACK_CACHE_COZY_COLD_GROUPS' ) ) {
-			$groups = (array) \constant( 'NEWSPACK_CACHE_COZY_COLD_GROUPS' );
-		}
-
-		// Narrow the mixed-array to the strings is_cold() consumes.
-		return \array_values(
-			\array_filter(
-				$groups,
-				'\is_string'
-			)
-		);
-	}
-
-	/**
-	 * Whether this request is the warmer's own loopback hit (secret matches).
-	 *
-	 * @param array<array-key, mixed> $get             The request query params ($_GET).
-	 * @param string                  $expected_secret The stored warmer secret.
-	 * @return bool
-	 */
-	public static function is_warm_request( array $get, string $expected_secret ): bool {
-		// Empty secret never matches: an unconfigured site can't be tricked.
-		if ( '' === $expected_secret || ! isset( $get['cache_cozy_warm'] ) || ! \is_string( $get['cache_cozy_warm'] ) ) {
-			return false;
-		}
-		return \hash_equals( $expected_secret, $get['cache_cozy_warm'] );
-	}
-
-	/**
 	 * Swap the live object cache for the cold-read decorator (process-local, idempotent).
 	 *
-	 * @param array<int, string>|null $groups Explicit cold groups, or null for cold_groups().
+	 * @param array<int,string>|null $groups Explicit cold groups, or null for cold_groups().
 	 */
 	public static function install_cold_cache( ?array $groups = null ): void {
 		if (
@@ -445,57 +370,61 @@ class Cache_Cozy {
 		);
 	}
 
-	/** The shared secret gating warm requests; generated once and stored non-autoloaded. */
-	public static function secret(): string {
-		/** @var int|float|string|bool|null $raw_secret */
-		$raw_secret = \get_option( self::SECRET_OPTION, '' );
-		$secret     = (string) $raw_secret;
-		if ( '' === $secret ) {
-			$secret = \bin2hex( \random_bytes( 16 ) );
-			\update_option( self::SECRET_OPTION, $secret, false );
+	/**
+	 * Object-cache groups the warm render forces cold so the site rebuilds them.
+	 * Define NEWSPACK_CACHE_COZY_COLD_GROUPS in wp-config.php to override.
+	 *
+	 * @return array<int,string>
+	 */
+	public static function cold_groups(): array {
+		$groups = [ 'newspack_blocks', 'transient', 'site-transient' ];
+		if ( \defined( 'NEWSPACK_CACHE_COZY_COLD_GROUPS' ) ) {
+			$groups = (array) \constant( 'NEWSPACK_CACHE_COZY_COLD_GROUPS' );
 		}
-		return $secret;
+
+		// Narrow the mixed-array to the strings is_cold() consumes.
+		return \array_values(
+			\array_filter(
+				$groups,
+				'\is_string'
+			)
+		);
 	}
 
 	/**
-	 * The loopback URL the cron hits (path + secret, optional cold-group override).
+	 * Parse a secret-gated `cache_cozy_groups` query param into a clean string[],
+	 * or null when absent (caller falls back to the global cold_groups()).
 	 *
-	 * @param string $path        Path to warm (default homepage).
-	 * @param string $cold_groups Comma-joined cold-group override (empty = drop-in default).
-	 * @return string
+	 * @param array<array-key,mixed> $get The request query params ($_GET).
+	 * @return array<int,string>|null
 	 */
-	public static function warm_url( string $path = '/', string $cold_groups = '' ): string {
-		$url = \add_query_arg( 'cache_cozy_warm', self::secret(), \home_url( $path ) );
-		if ( '' !== $cold_groups ) {
-			$url = \add_query_arg( 'cache_cozy_groups', $cold_groups, $url );
+	private static function groups_from_request( array $get ): ?array {
+		if ( ! isset( $get['cache_cozy_groups'] ) || ! \is_string( $get['cache_cozy_groups'] ) ) {
+			return null;
 		}
-		return $url;
+		$out = [];
+		foreach ( \explode( ',', $get['cache_cozy_groups'] ) as $group ) {
+			$group = \preg_replace( '/[^a-z0-9_-]/i', '', \trim( $group ) );
+			if ( null !== $group && '' !== $group ) {
+				$out[] = $group;
+			}
+		}
+		return [] === $out ? null : $out;
 	}
 
 	/**
-	 * HTTP Basic credential for the loopback ("Basic …"), or '' when none.
+	 * Whether this request is the warmer's own loopback hit (secret matches).
 	 *
-	 * An authenticated loopback makes the edge/page cache forward to PHP instead
-	 * of serving a cached homepage. Read in the job-worker process (no password
-	 * ever rides through the job message / jobs.log): the `newspack_cache_cozy_auth`
-	 * option ("user:application password", set via `wp option update`), or the
-	 * `NEWSPACK_CACHE_COZY_AUTH` wp-config constant if you prefer to keep it
-	 * out of the DB (constant wins).
-	 *
-	 * @return string
+	 * @param array<array-key,mixed> $get             The request query params ($_GET).
+	 * @param string                  $expected_secret The stored warmer secret.
+	 * @return bool
 	 */
-	public static function auth_header(): string {
-		if ( \defined( 'NEWSPACK_CACHE_COZY_AUTH' ) ) {
-			/** @var int|float|string|bool|null $raw_const */
-			$raw_const = \NEWSPACK_CACHE_COZY_AUTH;
-			$cred      = (string) $raw_const;
-		} else {
-			/** @var int|float|string|bool|null $raw_auth */
-			$raw_auth = \get_option( self::AUTH_OPTION, '' );
-			$cred     = self::decrypt( (string) $raw_auth );
+	public static function is_warm_request( array $get, string $expected_secret ): bool {
+		// Empty secret never matches: an unconfigured site can't be tricked.
+		if ( '' === $expected_secret || ! isset( $get['cache_cozy_warm'] ) || ! \is_string( $get['cache_cozy_warm'] ) ) {
+			return false;
 		}
-		$cred = \trim( $cred );
-		return '' === $cred ? '' : 'Basic ' . \base64_encode( $cred );
+		return \hash_equals( $expected_secret, $get['cache_cozy_warm'] );
 	}
 
 	/**
@@ -514,11 +443,6 @@ class Cache_Cozy {
 		\update_option( self::AUTH_OPTION, self::encrypt( $credential ), false );
 	}
 
-	/** 32-byte key from wp_salt('auth') — DB-only access can't derive it. Matches Server_Registry. */
-	private static function encryption_key(): string {
-		return \sodium_crypto_generichash( \wp_salt( 'auth' ), '', SODIUM_CRYPTO_SECRETBOX_KEYBYTES );
-	}
-
 	/**
 	 * Encrypt to `$enc$<base64(nonce.ciphertext)>`; '' on empty input or no sodium.
 	 *
@@ -533,31 +457,6 @@ class Cache_Cozy {
 		$ciphertext = \sodium_crypto_secretbox( $plaintext, $nonce, self::encryption_key() );
 		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- binary-safe storage.
 		return self::ENCRYPTED_PREFIX . \base64_encode( $nonce . $ciphertext );
-	}
-
-	/**
-	 * Decrypt a stored value. A non-prefixed value (plaintext typed straight into
-	 * wp-config / a legacy row) passes through unchanged; '' on decrypt failure.
-	 *
-	 * @param string $stored Stored value (encrypted or plaintext).
-	 * @return string
-	 */
-	private static function decrypt( string $stored ): string {
-		if ( 0 !== \strpos( $stored, self::ENCRYPTED_PREFIX ) ) {
-			return $stored;
-		}
-		if ( ! \function_exists( 'sodium_crypto_secretbox_open' ) ) {
-			return '';
-		}
-		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- binary-safe storage.
-		$decoded = \base64_decode( \substr( $stored, \strlen( self::ENCRYPTED_PREFIX ) ), true );
-		if ( false === $decoded || \strlen( $decoded ) < SODIUM_CRYPTO_SECRETBOX_NONCEBYTES ) {
-			return '';
-		}
-		$nonce      = \substr( $decoded, 0, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES );
-		$ciphertext = \substr( $decoded, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES );
-		$plaintext  = \sodium_crypto_secretbox_open( $ciphertext, $nonce, self::encryption_key() );
-		return false === $plaintext ? '' : $plaintext;
 	}
 
 	/**
@@ -601,6 +500,107 @@ class Cache_Cozy {
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			\error_log( '[newspack-cache-cozy] loopback failed: ' . $result->get_error_message() );
 		}
+	}
+
+	/**
+	 * The loopback URL the cron hits (path + secret, optional cold-group override).
+	 *
+	 * @param string $path        Path to warm (default homepage).
+	 * @param string $cold_groups Comma-joined cold-group override (empty = drop-in default).
+	 * @return string
+	 */
+	public static function warm_url( string $path = '/', string $cold_groups = '' ): string {
+		$url = \add_query_arg( 'cache_cozy_warm', self::secret(), \home_url( $path ) );
+		if ( '' !== $cold_groups ) {
+			$url = \add_query_arg( 'cache_cozy_groups', $cold_groups, $url );
+		}
+		return $url;
+	}
+
+	/** The shared secret gating warm requests; generated once and stored non-autoloaded. */
+	public static function secret(): string {
+		/** @var int|float|string|bool|null $raw_secret */
+		$raw_secret = \get_option( self::SECRET_OPTION, '' );
+		$secret     = (string) $raw_secret;
+		if ( '' === $secret ) {
+			$secret = \bin2hex( \random_bytes( 16 ) );
+			\update_option( self::SECRET_OPTION, $secret, false );
+		}
+		return $secret;
+	}
+
+	/**
+	 * HTTP Basic credential for the loopback ("Basic …"), or '' when none.
+	 *
+	 * An authenticated loopback makes the edge/page cache forward to PHP instead
+	 * of serving a cached homepage. Read in the job-worker process (no password
+	 * ever rides through the job message / jobs.log): the `newspack_cache_cozy_auth`
+	 * option ("user:application password", set via `wp option update`), or the
+	 * `NEWSPACK_CACHE_COZY_AUTH` wp-config constant if you prefer to keep it
+	 * out of the DB (constant wins).
+	 *
+	 * @return string
+	 */
+	public static function auth_header(): string {
+		if ( \defined( 'NEWSPACK_CACHE_COZY_AUTH' ) ) {
+			/** @var int|float|string|bool|null $raw_const */
+			$raw_const = \NEWSPACK_CACHE_COZY_AUTH;
+			$cred      = (string) $raw_const;
+		} else {
+			/** @var int|float|string|bool|null $raw_auth */
+			$raw_auth = \get_option( self::AUTH_OPTION, '' );
+			$cred     = self::decrypt( (string) $raw_auth );
+		}
+		$cred = \trim( $cred );
+		return '' === $cred ? '' : 'Basic ' . \base64_encode( $cred );
+	}
+
+	/**
+	 * Decrypt a stored value. A non-prefixed value (plaintext typed straight into
+	 * wp-config / a legacy row) passes through unchanged; '' on decrypt failure.
+	 *
+	 * @param string $stored Stored value (encrypted or plaintext).
+	 * @return string
+	 */
+	private static function decrypt( string $stored ): string {
+		if ( 0 !== \strpos( $stored, self::ENCRYPTED_PREFIX ) ) {
+			return $stored;
+		}
+		if ( ! \function_exists( 'sodium_crypto_secretbox_open' ) ) {
+			return '';
+		}
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- binary-safe storage.
+		$decoded = \base64_decode( \substr( $stored, \strlen( self::ENCRYPTED_PREFIX ) ), true );
+		if ( false === $decoded || \strlen( $decoded ) < SODIUM_CRYPTO_SECRETBOX_NONCEBYTES ) {
+			return '';
+		}
+		$nonce      = \substr( $decoded, 0, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES );
+		$ciphertext = \substr( $decoded, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES );
+		$plaintext  = \sodium_crypto_secretbox_open( $ciphertext, $nonce, self::encryption_key() );
+		return false === $plaintext ? '' : $plaintext;
+	}
+
+	/** 32-byte key from wp_salt('auth') — DB-only access can't derive it. Matches Server_Registry. */
+	private static function encryption_key(): string {
+		return \sodium_crypto_generichash( \wp_salt( 'auth' ), '', SODIUM_CRYPTO_SECRETBOX_KEYBYTES );
+	}
+
+	/**
+	 * Register the warmer's own 60s cron interval so `wp cron event schedule
+	 * newspack_cache_cozy_tick now newspack_cache_cozy_minute` works standalone —
+	 * no reliance on newspack-nodes' `newspack_nodes_minute` being loaded.
+	 *
+	 * @param array<string,mixed> $schedules Existing cron schedules.
+	 * @return array<string,mixed>
+	 */
+	public static function register_cron_schedule( array $schedules ): array {
+		if ( ! isset( $schedules[ self::CRON_SCHEDULE ] ) ) {
+			$schedules[ self::CRON_SCHEDULE ] = [
+				'interval' => 60,
+				'display'  => 'Every Minute (Cache Cozy)',
+			];
+		}
+		return $schedules;
 	}
 }
 
