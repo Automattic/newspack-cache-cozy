@@ -11,6 +11,12 @@
  * comments whose full length is strictly necessary. Directive comments
  * (`phpcs:`, `translators:`, `eslint-`) are exempt: they cannot be split.
  *
+ * GENERICS: a docblock type carries no space after its comma. Write
+ * `array<string,mixed>`; a space before `mixed` is the violation. Both parse
+ * identically; the editor only highlights the tight one as a single type.
+ * `--fix` rewrites them. (The counter-example is described, not written: this
+ * file is linted by itself, and `--fix` would collapse it on the next run.)
+ *
  * Exit 0 clean; exit 1 with `file:line: message` per violation.
  *
  * @package Newspack_Nodes
@@ -41,6 +47,73 @@ function visual_length( string $line ): int {
 	return $col;
 }
 
+/**
+ * The balanced `<...>` span starting at `$start`, collapsed, or null when it
+ * is not a type at all.
+ *
+ * @longform Two prose shapes defeat a plain depth counter, and both reached
+ * the tree. `n<10, retry, then bail` never closes, so the collapse ran to end
+ * of line and ate the spaces after every later comma. `a<b, see c>d` DOES
+ * close, so buffering alone still accepted it. The discriminator is the
+ * content: a type argument carries no internal space once its comma-spaces are
+ * gone, and `see c` does. Rejecting a candidate must also backtrack rather
+ * than skip the rest of the line, or a stray `<` earlier in a sentence hides a
+ * real generic behind it from the gate.
+ *
+ * @param string $line  One source line.
+ * @param int    $start Index of the candidate `<`.
+ * @return array{0:int,1:string}|null End index and collapsed text, or null.
+ */
+function generic_span( string $line, int $start ): ?array {
+	$span  = '';
+	$depth = 0;
+	$len   = \strlen( $line );
+	for ( $i = $start; $i < $len; $i++ ) {
+		$ch = $line[ $i ];
+		if ( '<' === $ch ) {
+			++$depth;
+		} elseif ( '>' === $ch ) {
+			--$depth;
+		} elseif ( ',' === $ch ) {
+			$span .= ',';
+			while ( $i + 1 < $len && ( ' ' === $line[ $i + 1 ] || "\t" === $line[ $i + 1 ] ) ) {
+				++$i;
+			}
+			continue;
+		}
+		$span .= $ch;
+		if ( 0 === $depth ) {
+			// A type has no internal whitespace once collapsed; prose does.
+			return \preg_match( '/\s/', $span ) ? null : [ $i, $span ];
+		}
+	}
+	return null;
+}
+
+/**
+ * Drop the spaces after commas inside generic type arguments, at any depth.
+ *
+ * @param string $line One source line.
+ * @return string The line with its generics tightened.
+ */
+function collapse_generics( string $line ): string {
+	$out = '';
+	$len = \strlen( $line );
+	for ( $i = 0; $i < $len; $i++ ) {
+		if ( '<' === $line[ $i ] && $i > 0 && 1 === \preg_match( '/\w/', $line[ $i - 1 ] ) ) {
+			$span = generic_span( $line, $i );
+			if ( null !== $span ) {
+				[ $end, $text ] = $span;
+				$out           .= $text;
+				$i              = $end;
+				continue;
+			}
+		}
+		$out .= $line[ $i ];
+	}
+	return $out;
+}
+
 function is_directive( string $text ): bool {
 	return 1 === \preg_match( '/^\s*(?:\/\/|#|\/\*)+\s*(?:phpcs:|translators:|eslint-|@var\s|@codeCoverageIgnore|@phpstan-|@codingStandardsIgnore|@psalm-)/', $text );
 }
@@ -68,7 +141,7 @@ const DECLARATION_TOKENS = [
  * arms all nest deeper and count as function scope.
  *
  * @param string $source PHP source.
- * @return array<int, string> `line: message` violations.
+ * @return array<int,string> `line: message` violations.
  */
 function stray_comments( string $source ): array {
 	$tokens      = \token_get_all( $source );
@@ -166,7 +239,7 @@ function stray_comments( string $source ): array {
 }
 
 /**
- * @return array<int, string> `line: message` violations for one file.
+ * @return array<int,string> `line: message` violations for one file.
  */
 function check_file( string $file ): array {
 	$source = \file_get_contents( $file );
@@ -209,6 +282,18 @@ function check_file( string $file ): array {
 		$src_line = \rtrim( $lines[ $line - 1 ] ?? '', "\r" );
 		if ( visual_length( $src_line ) > MAX_COLS ) {
 			$violations[] = "{$line}: comment exceeds " . MAX_COLS . ' columns (condense, or tag @longform)';
+		}
+	}
+
+	// Generics: docblocks carry the types, so this pass sees both kinds.
+	foreach ( \token_get_all( $source ) as $token ) {
+		if ( ! \is_array( $token ) || ! \in_array( $token[0], [ \T_COMMENT, \T_DOC_COMMENT ], true ) ) {
+			continue;
+		}
+		foreach ( \explode( "\n", $token[1] ) as $offset => $text_line ) {
+			if ( collapse_generics( $text_line ) !== $text_line ) {
+				$violations[] = ( $token[2] + $offset ) . ': space inside a generic type (array<string,mixed>)';
+			}
 		}
 	}
 
@@ -287,8 +372,42 @@ function expand_path( string $path ): array {
 	return $out;
 }
 
+/**
+ * Rewrite one file's docblock generics in place, leaving code untouched.
+ *
+ * Only comment and docblock tokens are rewritten, so a `<` in a string or an
+ * expression is never reached.
+ *
+ * @param string $file Path to rewrite.
+ * @return bool True when the file was rewritten.
+ */
+function fix_generics( string $file ): bool {
+	$source = \file_get_contents( $file );
+	if ( false === $source ) {
+		return false;
+	}
+	$out = '';
+	foreach ( \token_get_all( $source ) as $token ) {
+		if ( \is_array( $token ) && \in_array( $token[0], [ \T_COMMENT, \T_DOC_COMMENT ], true ) ) {
+			$out .= \implode( "\n", \array_map( 'collapse_generics', \explode( "\n", $token[1] ) ) );
+			continue;
+		}
+		$out .= \is_array( $token ) ? $token[1] : $token;
+	}
+	if ( $out === $source ) {
+		return false;
+	}
+	\file_put_contents( $file, $out );
+	return true;
+}
+
 $targets = [];
+$fix     = false;
 foreach ( \array_slice( $argv, 1 ) as $argument ) {
+	if ( '--fix' === $argument ) {
+		$fix = true;
+		continue;
+	}
 	$targets = \array_merge( $targets, expand_path( $argument ) );
 }
 
@@ -300,6 +419,10 @@ foreach ( $targets as $file ) {
 	// Also filter explicit paths: lint-staged passes files, not a directory.
 	if ( 1 === \preg_match( '#(^|/)(' . \implode( '|', \array_map( '\preg_quote', SKIP_DIRS ) ) . ')/#', $file ) ) {
 		continue;
+	}
+	// --fix still gates; a fixer exiting 0 would no-op pre-commit.
+	if ( $fix && fix_generics( $file ) ) {
+		\fwrite( \STDOUT, "fixed generics: {$file}\n" );
 	}
 	foreach ( check_file( $file ) as $violation ) {
 		\fwrite( \STDERR, "{$file}:{$violation}\n" );
