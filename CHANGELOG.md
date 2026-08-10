@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.8] - 2026-08-10
+
+### Added
+
+- **The dead-code phpstan layer**, which four of the six plugins already ran.
+  It needs the substrate really loaded rather than merely scanned, so
+  `.phpstan/load-substrate.php` mirrors the event-logger-nodes bootstrap. Every
+  finding was a dynamically dispatched entry point — the Node contract, the
+  WordPress object-cache drop-in, and `Cache_Cozy::store_auth`, which
+  `bin/schedule-cache-cozy.sh` invokes via `wp eval` and which is now tagged
+  `@api`.
+
+### Changed
+
+- **Dependencies updated within range** — phpstan 2.2.8, vipwpcs 3.1.0, wpcs
+  3.4.1, phpunit 10.5.64, php_codesniffer 3.13.6.
+- Plugin header now carries the same fields, in the same order, as its siblings.
+
 ## [0.4.7] - 2026-08-09
 
 ### Changed
