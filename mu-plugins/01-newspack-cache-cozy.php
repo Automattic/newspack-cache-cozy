@@ -432,6 +432,7 @@ class Cache_Cozy {
 	 * operator script stores it via `wp eval`, reading the plaintext off stdin so
 	 * it never lands in `ps`). Empty input clears it. Stored non-autoloaded.
 	 *
+	 * @api Operator entry point: bin/schedule-cache-cozy.sh calls it via wp eval.
 	 * @param string $credential "user:application password".
 	 */
 	public static function store_auth( string $credential ): void {

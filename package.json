@@ -16,9 +16,10 @@
 		"lint:js": "true && node scripts/lint-comments.mjs .",
 		"lint:scss": "true",
 		"lint:shell": "shellcheck scripts/pre-push scripts/*.sh",
-		"lint:phpstan": "vendor/bin/phpstan analyse --memory-limit=1G --no-progress",
+		"lint:phpstan": "vendor/bin/phpstan analyse -c phpstan-deadcode.neon --memory-limit=2G --no-progress",
 		"test:js": "true",
-		"test:js:coverage": "true"
+		"test:js:coverage": "true",
+		"lint:deadcode": "npm run lint:phpstan"
 	},
 	"devDependencies": {
 		"@commitlint/cli": "^20.1.0",
