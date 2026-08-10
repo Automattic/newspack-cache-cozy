@@ -1,0 +1,46 @@
+# PHPStan gate with dead-code detection enabled.
+#
+# shipmonk/dead-code-detector is excluded from the auto-loaded extension set
+# (see composer.json extra.phpstan/extension-installer.ignore), so use this
+# explicit config whenever running the project PHPStan gate:
+#
+#     npm run lint:phpstan
+#
+# Caveat: this is an small APPLICATION on the newspack-nodes substrate. tests/ are
+# excluded (inherited from the main config) so test-only methods surface, and
+# the substrate classes this builds on live in a separate repo the analysis
+# cannot see — so most findings are WP/CLI entrypoints, hook callbacks, JS↔PHP
+# wire constants, or deliberate test seams, NOT genuinely dead. Verify each
+# against ALL call paths (dynamic dispatch, hooks, reflection, the sibling
+# substrate, and JS) before deleting anything.
+includes:
+    - phpstan.neon.dist
+    - vendor/shipmonk/dead-code-detector/rules.neon
+parameters:
+    # Keep ShipMonk's collected-data cache project-local. The default global
+    # PHPStan tmp dir can race when multiple plugin gates run concurrently.
+    tmpDir: .phpstan/cache/deadcode
+    # Real-load the substrate's Newspack_Nodes\* base classes during analysis —
+    # the dead-code-detector's reflection providers invoke the actual autoloader
+    # (scanDirectories alone isn't enough). Merged with phpstan.neon.dist's
+    # bootstrapFiles. See the bootstrap for the full rationale.
+    bootstrapFiles:
+        - .phpstan/load-substrate.php
+    ignoreErrors:
+        # The Node contract, dispatched by the SUBSTRATE, which this analysis
+        # reads for symbols but never as a caller: make_node() constructs and
+        # calls arguments(), Router calls fill(), the Timer tick calls fire(),
+        # and the console reads node_schema()/dump_config(). Every one reads as
+        # dead here and none is. Anything OUTSIDE this list is a real finding —
+        # that is the point of naming them rather than muting the rule.
+        -
+            identifier: shipmonk.deadMethod
+            message: '#::(__construct|fill|fire|arguments|node_schema|dump_config)$#'
+            path: includes/*.php
+        # WordPress object-cache drop-in. Core calls every one of these through
+        # $GLOBALS['wp_object_cache'] (wp_cache_get and friends), which no
+        # static analysis of this repo can see.
+        -
+            identifier: shipmonk.deadMethod
+            message: '#Cold_Read_Object_Cache::#'
+            path: mu-plugins/01-newspack-cache-cozy.php
