@@ -95,6 +95,8 @@ class Cache_Cozy_Tick_Node extends Timer_Node {
 		$message[ Message::VALUE ] = [
 			'k'          => 'job',
 			'handler'    => self::JOB_HANDLER,
+			// The warmed path names the request context before_job opens.
+			'id'         => $this->path,
 			'parameters' => [
 				'queued_at'   => $now,
 				'interval'    => $this->interval_seconds,
@@ -140,9 +142,10 @@ class Cache_Cozy_Tick_Node extends Timer_Node {
 	 * skip the stale one). There is no uniform stale-drop in JobWorker — each
 	 * handler enforces its own age (cf. RemoteManager::STALE_THRESHOLD = 600s).
 	 *
+	 * @param string              $id         The warmed path; names this job's request context.
 	 * @param array<string,mixed> $parameters Job parameters (`queued_at`).
 	 */
-	public static function handle_job( array $parameters ): void {
+	public static function handle_job( string $id, array $parameters ): void {
 		if ( ! isset( $parameters['queued_at'], $parameters['interval'], $parameters['path'], $parameters['cold_groups'] ) ) {
 			// Producer always emits the full shape; a missing field is corrupt.
 			Core::print_less_often( 'CacheCozyTick: dropping malformed warm job (missing required fields)' );

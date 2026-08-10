@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`handle_job()` takes `( string $id, array $parameters )`**, matching the
+  substrate's flipped contract, and `Cache_Cozy_Tick_Node::fire()` names each
+  warm job after the path it warms. Without an id every warm logged as a bare
+  `/jobs/cache_cozy` and the jobstats key collapsed across paths.
+
 ## [0.4.8] - 2026-08-10
 
 ### Added
