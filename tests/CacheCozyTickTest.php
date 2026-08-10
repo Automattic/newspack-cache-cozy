@@ -156,7 +156,7 @@ class CacheCozyTickTest extends TestCase {
 	// ── handle_job(): stale-drop + warm ──────────────────────────────────────
 
 	public function test_handle_job_warms_when_fresh(): void {
-		Cache_Cozy_Tick_Node::handle_job( [ 'queued_at' => \time(), 'interval' => 60, 'path' => '/', 'cold_groups' => '' ] );
+		Cache_Cozy_Tick_Node::handle_job( '/', [ 'queued_at' => \time(), 'interval' => 60, 'path' => '/', 'cold_groups' => '' ] );
 
 		$this->assertCount( 1, $GLOBALS['_wp_test_remote_gets'], 'a fresh job must fire the warm loopback' );
 		$this->assertStringContainsString( 'cache_cozy_warm=', $GLOBALS['_wp_test_remote_gets'][0]['url'] );
@@ -166,7 +166,7 @@ class CacheCozyTickTest extends TestCase {
 		// The sole producer (fire()) always emits the full {queued_at, interval,
 		// path, cold_groups} shape. A job missing any field is corrupt (or an old
 		// pre-migration replay) and is dropped, not warmed with guessed defaults.
-		Cache_Cozy_Tick_Node::handle_job( [ 'queued_at' => \time() ] );
+		Cache_Cozy_Tick_Node::handle_job( '/', [ 'queued_at' => \time() ] );
 
 		$this->assertCount( 0, $GLOBALS['_wp_test_remote_gets'], 'an incomplete envelope must be dropped, not warmed' );
 	}
@@ -174,7 +174,7 @@ class CacheCozyTickTest extends TestCase {
 	public function test_handle_job_drops_stale_request(): void {
 		// A job that sat in the queue >= one full interval: skip it — the next
 		// tick's job will warm. Must NOT fire the loopback.
-		Cache_Cozy_Tick_Node::handle_job( [ 'queued_at' => \time() - Cache_Cozy_Tick_Node::INTERVAL_SECONDS, 'interval' => Cache_Cozy_Tick_Node::INTERVAL_SECONDS, 'path' => '/', 'cold_groups' => '' ] );
+		Cache_Cozy_Tick_Node::handle_job( '/', [ 'queued_at' => \time() - Cache_Cozy_Tick_Node::INTERVAL_SECONDS, 'interval' => Cache_Cozy_Tick_Node::INTERVAL_SECONDS, 'path' => '/', 'cold_groups' => '' ] );
 
 		$this->assertCount( 0, $GLOBALS['_wp_test_remote_gets'], 'stale job must be dropped, not warmed' );
 	}
@@ -329,6 +329,41 @@ class CacheCozyTickTest extends TestCase {
 		$this->assertSame( 45, $value['parameters']['interval'], 'fire() must thread the interval into the job params' );
 	}
 
+	/**
+	 * The envelope carries an `id`, which is what before_job names the job's
+	 * request context after. Without one every warm logs as a bare
+	 * /jobs/cache_cozy and the jobstats key collapses across paths.
+	 */
+	public function test_fire_names_the_job_after_the_path_it_warms(): void {
+		$router = new Router_Node();
+		$router->name( '_router' );
+
+		$node = new Cache_Cozy_Tick_Node();
+		$sink = new Capture_Sink_Node();
+		$node->name( 'cache-cozy:tick' );
+		$node->arguments( [ '60', '/weekly-issue', '' ] );
+		$node->sink( $sink );
+
+		$node->fire();
+
+		$value = $sink->captured[0][ \Newspack_Nodes\Message::VALUE ];
+		$this->assertSame( '/weekly-issue', $value['id'] );
+	}
+
+	/**
+	 * The handler takes its id first, mirroring every other job handler.
+	 * Reversed, the array lands where the string is declared.
+	 */
+	public function test_handle_job_takes_the_id_before_the_parameters(): void {
+		Cache_Cozy_Tick_Node::handle_job(
+			'/weekly-issue',
+			[ 'queued_at' => \time() - 9000, 'interval' => 30, 'path' => '/weekly-issue', 'cold_groups' => '' ]
+		);
+
+		// Stale by a wide margin, so it drops without needing the drop-in.
+		$this->assertTrue( true );
+	}
+
 	// ── fire(): path + cold_groups are threaded into the job parameters ──────
 
 	public function test_fire_enqueues_path_and_cold_groups(): void {
@@ -353,13 +388,14 @@ class CacheCozyTickTest extends TestCase {
 
 	public function test_handle_job_drops_stale_request_using_job_interval(): void {
 		// A 30s-interval job queued 31s ago is stale and must be dropped.
-		Cache_Cozy_Tick_Node::handle_job( [ 'queued_at' => \time() - 31, 'interval' => 30, 'path' => '/', 'cold_groups' => '' ] );
+		Cache_Cozy_Tick_Node::handle_job( '/', [ 'queued_at' => \time() - 31, 'interval' => 30, 'path' => '/', 'cold_groups' => '' ] );
 
 		$this->assertCount( 0, $GLOBALS['_wp_test_remote_gets'], 'stale-by-job-interval must be dropped' );
 	}
 
 	public function test_handle_job_forwards_path_and_cold_groups_to_warm_loopback(): void {
 		Cache_Cozy_Tick_Node::handle_job(
+			'/',
 			[
 				'queued_at'   => \time(),
 				'interval'    => 60,
