@@ -4,10 +4,13 @@
  * Description: Refresh-ahead cache warmer for newspack-nodes — keeps the homepage's caches hot out-of-band so no visitor pays the cold render.
  * Version: 0.4.7
  * Author: Automattic
+ * Author URI: https://newspack.com/
  * License: GPL-2.0-or-later
- * Text Domain: newspack-cache-cozy
- * Requires Plugins: newspack-nodes
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
+ * Requires at least: 6.5
  * Requires PHP: 8.2
+ * Requires Plugins: newspack-nodes
+ * Text Domain: newspack-cache-cozy
  *
  * @package Newspack_Cache_Cozy
  */
