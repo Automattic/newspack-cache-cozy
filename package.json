@@ -13,7 +13,7 @@
 		"fix:scss": "true",
 		"format": "true",
 		"lint:php": "phpcs && php scripts/lint-comments.php .",
-		"lint:js": "true && node scripts/lint-comments.mjs .",
+		"lint:js": "true && node scripts/lint-comments.mjs . && node scripts/lint-contract.mjs",
 		"lint:scss": "true",
 		"lint:shell": "shellcheck scripts/pre-push scripts/*.sh",
 		"lint:phpstan": "vendor/bin/phpstan analyse -c phpstan-deadcode.neon --memory-limit=2G --no-progress",
