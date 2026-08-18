@@ -7,7 +7,9 @@
 # reachability check runs first, so a bad --path / missing wp / unreachable DB
 # aborts loud instead of being reported as a clean "cleaned up". Extra args
 # pass through to `wp`, e.g.:
-#   ./unschedule-cache-cozy.sh --allow-root --path=/var/www/html
+#   ./unschedule-cache-cozy.sh --path=/var/www/html
+#
+# Run it as the user that owns the WordPress install, not root.
 
 set -euo pipefail
 
