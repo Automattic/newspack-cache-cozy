@@ -1,17 +1,25 @@
 #!/usr/bin/env bash
-# Schedule the cache-cozy warmer's recurring tick.
+# Provision the cache-cozy warmer.
 #
-# Idempotent: re-running won't create a duplicate event. Requires the
-# 01-newspack-cache-cozy.php drop-in to be installed (it registers the
-# `newspack_cache_cozy_minute` recurrence this schedules against).
+# Stores the encrypted loopback credential. The wp-cron scheduling below is
+# PARKED — the tick is driven elsewhere — so this script currently schedules
+# nothing; re-enable that block to have it register the event again. Requires
+# the 01-newspack-cache-cozy.php drop-in (it registers the
+# `newspack_cache_cozy_minute` recurrence the parked block schedules against).
 #
-# Any extra args pass through to `wp` so this works in the dev container
-# (`--allow-root --path=/var/www/html`) and on a remote host alike, e.g.:
-#   ./schedule-cache-cozy.sh --allow-root --path=/var/www/html
+# Any extra args pass through to `wp`, so a site whose install is not the
+# working directory names it, e.g.:
+#   ./schedule-cache-cozy.sh --path=/var/www/html
+#
+# Run it as the user that owns the WordPress install. WP-CLI as root writes
+# cron and option state that user cannot then rewrite.
 
 set -euo pipefail
 
+# Read only by the parked wp-cron block at the foot of this file.
+# shellcheck disable=SC2034
 readonly HOOK="newspack_cache_cozy_tick"
+# shellcheck disable=SC2034
 readonly RECURRENCE="newspack_cache_cozy_minute"
 WP="${WP:-wp}"
 
@@ -24,6 +32,8 @@ printf 'App password for the warm loopback (user:app-password), blank to skip: '
 read -r -s cred || true
 printf '\n' >&2
 if [ -n "$cred" ]; then
+    # The PHP is single-quoted deliberately: bash must not expand $c or $_.
+    # shellcheck disable=SC2016
     printf '%s' "$cred" | "$WP" eval '
 $c = trim( file_get_contents( "php://stdin" ) );
 if ( ! class_exists( "Newspack_Cache_Cozy\\Cache_Cozy" ) ) {
