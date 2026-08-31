@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-08-31
+
+### Added
+
+- **The autosaves endpoint is asked for raw content, so it renders none.** `WP_REST_Revisions_Controller::prepare_item_for_response()` applies `the_content` per item, gated on `content.rendered` being among the requested fields — and the block editor reads `content.raw`. On a post with eleven autosaves that render cost 2.3s apiece INSIDE the page response, because `edit-form-blocks.php` preloads `{type}/{id}/autosaves?context=edit` through `rest_do_request()`: **25.8s of a 41s editor load**, spent building markup nothing reads. `Cache_Cozy::trim_autosave_fields()` names the fields the editor actually consumes on the REQUEST rather than on the preload PATH — the path is the key `@wordpress/api-fetch`'s preloading middleware matches on, so `_fields` there would miss the cache and re-fetch over HTTP, moving the cost off the page instead of removing it. An explicit `_fields` still wins.
+
+### Fixed
+
+- **`CacheCozyTest` is marked medium.** 84 tests in 0.35s even beside two other suites, so nothing in it is slow: what exceeded the 1s small-test limit was the first test paying the process's warm-up while the pre-push gate ran a coverage pass beside it, which reports as a risky test whose assertion never ran.
+
 ## [0.5.0] - 2026-08-10
 
 ### Changed
