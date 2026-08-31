@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Newspack Cache Cozy
  * Description: Standalone refresh-ahead warmer — keeps the homepage's caches hot out-of-band so no visitor pays the cold render. Self-contained drop-in: no dependency on any plugin.
- * Version: 0.1.0
+ * Version: 0.6.1
  * Author: Automattic
  *
  * Deploy: copy to wp-content/mu-plugins/01-newspack-cache-cozy.php. Drop-in,
