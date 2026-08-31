@@ -12,6 +12,7 @@
 namespace Newspack_Cache_Cozy\Tests;
 
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Medium;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use Newspack_Cache_Cozy\Cache_Cozy;
@@ -19,6 +20,15 @@ use Newspack_Cache_Cozy\Cold_Read_Object_Cache;
 use Newspack_Nodes\Tests\TestCase;
 
 #[CoversClass( Cache_Cozy::class )]
+/**
+ * Medium — PHPUnit only marks size per CLASS. 84 tests in 0.35s even beside two other
+ * suites, so nothing here is a slow unit: what exceeded the 1s small-test limit was the
+ * FIRST test paying the process's warm-up while the pre-push gate ran a coverage pass
+ * beside it. That reports as a risky test whose assertion never ran — a guard that stopped
+ * guarding without saying so. One test also forks (`RunInSeparateProcess`), which
+ * re-bootstraps the substrate and is medium by any reading.
+ */
+#[Medium]
 class CacheCozyTest extends TestCase {
 
 	private mixed $saved_object_cache = null;
@@ -143,6 +153,39 @@ class CacheCozyTest extends TestCase {
 		}
 
 		$this->assertContains( 'es_query_cache', Cache_Cozy::cold_groups() );
+	}
+
+	// ── Autosave preload: the editor's own 26 seconds ───────────────────────
+
+	public function test_an_autosave_request_asks_for_raw_content_only(): void {
+		// WP_REST_Revisions_Controller applies `the_content` per item, gated on
+		// `content.rendered` being among the requested fields. The editor reads
+		// `content.raw`, so naming the raw fields skips a render the editor
+		// throws away — eleven of them, 2.3s each, inside the page response.
+		$request = new \WP_REST_Request( [], '/wp/v2/posts/3663570/autosaves' );
+
+		Cache_Cozy::trim_autosave_fields( null, null, $request );
+
+		$fields = $request->get_param( '_fields' );
+		$this->assertContains( 'content.raw', $fields );
+		$this->assertNotContains( 'content', $fields, 'the parent field would include rendered' );
+		$this->assertNotContains( 'content.rendered', $fields );
+	}
+
+	public function test_an_explicit_field_list_is_left_alone(): void {
+		$request = new \WP_REST_Request( [ '_fields' => [ 'id', 'content' ] ], '/wp/v2/posts/9/autosaves' );
+
+		Cache_Cozy::trim_autosave_fields( null, null, $request );
+
+		$this->assertSame( [ 'id', 'content' ], $request->get_param( '_fields' ) );
+	}
+
+	public function test_only_autosave_routes_are_trimmed(): void {
+		$request = new \WP_REST_Request( [], '/wp/v2/posts/3663570' );
+
+		Cache_Cozy::trim_autosave_fields( null, null, $request );
+
+		$this->assertNull( $request->get_param( '_fields' ) );
 	}
 
 	// ── Secret-gated warm-request detection ─────────────────────────────────

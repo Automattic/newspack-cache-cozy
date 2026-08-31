@@ -316,10 +316,35 @@ class Cache_Cozy {
 	/** Single-flight lock so a slow render can't be lapped by the next tick. */
 	private const LOCK = 'newspack_cache_cozy_lock';
 
+	/**
+	 * What the block editor reads off an autosave.
+	 *
+	 * `title`, `excerpt` and `content` name their RAW children deliberately:
+	 * `rest_is_field_included()` counts a parent as including every child, so
+	 * asking for `content` asks for `content.rendered` and buys the render back.
+	 *
+	 * @var array<int,string>
+	 */
+	public const AUTOSAVE_FIELDS = [
+		'id',
+		'author',
+		'date',
+		'date_gmt',
+		'modified',
+		'modified_gmt',
+		'parent',
+		'slug',
+		'preview_link',
+		'title.raw',
+		'excerpt.raw',
+		'content.raw',
+	];
+
 	/** Drop-in bootstrap: install on a warm loopback + register the cron handler + recurrence. */
 	public static function register(): void {
 		self::maybe_install_for_request();
 		\add_action( self::CRON_HOOK, [ self::class, 'run_tick' ] );
+		\add_filter( 'rest_request_before_callbacks', [ self::class, 'trim_autosave_fields' ], 10, 3 );
 		\add_filter( 'cron_schedules', [ self::class, 'register_cron_schedule' ] ); // phpcs:ignore WordPress.WP.CronInterval -- intentional 60s warmer cadence (matches the substrate reconcile pass's minute tick).
 	}
 
@@ -584,6 +609,38 @@ class Cache_Cozy {
 	/** 32-byte key from wp_salt('auth') — DB-only access can't derive it. Matches Server_Registry. */
 	private static function encryption_key(): string {
 		return \sodium_crypto_generichash( \wp_salt( 'auth' ), '', SODIUM_CRYPTO_SECRETBOX_KEYBYTES );
+	}
+
+	/**
+	 * Ask the autosaves endpoint for raw content, so it renders none.
+	 *
+	 * `WP_REST_Revisions_Controller::prepare_item_for_response()` applies
+	 * `the_content` per item, gated on `content.rendered` being among the
+	 * requested fields — and the block editor reads `content.raw`. On a post
+	 * with eleven autosaves that render cost 2.3s apiece INSIDE the page
+	 * response, because `edit-form-blocks.php` preloads
+	 * `{type}/{id}/autosaves?context=edit` through `rest_do_request()`: 25.8s
+	 * of a 41s editor load, spent on markup nothing reads.
+	 *
+	 * On the REQUEST rather than the preload PATH: the path is the key
+	 * `@wordpress/api-fetch`'s preloading middleware matches on, so adding
+	 * `_fields` there would miss the cache and re-fetch over HTTP — moving the
+	 * cost off the page rather than removing it. Here both the preload and any
+	 * later fetch are covered, and an explicit `_fields` still wins.
+	 *
+	 * @param mixed $response Filter pass-through; never touched.
+	 * @param mixed $handler  Route handler; unused.
+	 * @param mixed $request  The REST request.
+	 * @return mixed The response, unchanged.
+	 */
+	public static function trim_autosave_fields( $response = null, $handler = null, $request = null ) {
+		if ( ! $request instanceof \WP_REST_Request
+			|| ! \str_ends_with( $request->get_route(), '/autosaves' )
+			|| null !== $request->get_param( '_fields' ) ) {
+			return $response;
+		}
+		$request->set_param( '_fields', self::AUTOSAVE_FIELDS );
+		return $response;
 	}
 
 	/**

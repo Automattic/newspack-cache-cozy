@@ -83,9 +83,11 @@ if ( ! class_exists( '\WP_Hook' ) ) {
 if ( ! class_exists( '\WP_REST_Request' ) ) {
 	class WP_REST_Request {
 		private array $params = [];
-		public function __construct( array $params = [] ) { $this->params = $params; }
+		private string $route = '';
+		public function __construct( array $params = [], string $route = '' ) { $this->params = $params; $this->route = $route; }
 		public function get_param( string $key ): mixed { return $this->params[ $key ] ?? null; }
 		public function set_param( string $key, mixed $value ): void { $this->params[ $key ] = $value; }
+		public function get_route(): string { return $this->route; }
 	}
 	class WP_REST_Response {
 		public mixed $data;
