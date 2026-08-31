@@ -155,6 +155,23 @@ class CacheCozyTest extends TestCase {
 		$this->assertContains( 'es_query_cache', Cache_Cozy::cold_groups() );
 	}
 
+	// ── The drop-in ships on its own, so it carries its own version ─────────
+
+	public function test_the_drop_in_header_matches_the_plugin_version(): void {
+		// A site can hold a copy of the drop-in that came from anywhere — the
+		// release attaches it as its own asset — so a header frozen at 0.1.0
+		// while the plugin moved to 0.6.0 left nobody able to tell which one
+		// they had. `scripts/bump-version.sh` moves it now; this catches a
+		// hand-edit that goes around the script.
+		$root   = \dirname( __DIR__ );
+		$plugin = (string) \file_get_contents( $root . '/newspack-cache-cozy.php' );
+		$dropin = (string) \file_get_contents( $root . '/mu-plugins/01-newspack-cache-cozy.php' );
+
+		$this->assertSame( 1, \preg_match( '/^ \* Version: (.+)$/m', $plugin, $want ) );
+		$this->assertSame( 1, \preg_match( '/^ \* Version: (.+)$/m', $dropin, $got ) );
+		$this->assertSame( \trim( $want[1] ), \trim( $got[1] ), 'the drop-in header trails the plugin' );
+	}
+
 	// ── Autosave preload: the editor's own 26 seconds ───────────────────────
 
 	public function test_an_autosave_request_asks_for_raw_content_only(): void {

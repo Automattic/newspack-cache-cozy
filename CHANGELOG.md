@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-08-31
+
+### Fixed
+
+- **The drop-in's own header moves with the plugin.** `01-newspack-cache-cozy.php` ships as its own release asset and a site can hold a copy that came from anywhere, so a header frozen at `0.1.0` while the plugin reached `0.6.0` left nobody able to tell which one they had. `scripts/bump-version.sh` rewrites it through the shared flow's `bump_extra` hook and prints it back, and a test fails if the two ever disagree — a hand-edit that goes around the script is exactly how it drifted the first time.
+
 ## [0.6.0] - 2026-08-31
 
 ### Added
