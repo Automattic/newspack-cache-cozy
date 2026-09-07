@@ -20,7 +20,7 @@ The plugin header `Requires Plugins: newspack-nodes` keeps the substrate active 
 
 Tests bypass the whole loader, requiring the substrate explicitly in `tests/bootstrap.php`.
 
-`scripts/check-substrate-floor.sh` proves that floor is high enough: PHPStan collects every substrate API this plugin calls, resolved to its declaring class, and the script walks the substrate's tags for the earliest one where all of them exist. A floor set too LOW is the failure it exists for — the handshake passes, the plugin wires itself up, and then fatals on a method the older substrate lacks. `scripts/lint-docs.sh` separately fails the push when prose names a floor the loader does not enforce.
+`scripts/check-substrate-floor.sh` proves that floor is high enough: PHPStan collects every substrate API this plugin calls, resolved to its declaring class, and the script walks the substrate's tags for the earliest one where all of them exist. A floor set too LOW is the failure it exists for — the handshake passes, the plugin wires itself up, and then fatals on a method the older substrate lacks. No hook here runs it: neither `pre-commit` nor `pre-push` invokes it, so after calling a newer substrate API you run it by hand or nothing checks the floor at all. What `pre-push` does run is `scripts/lint-docs.sh`, which fails the push when prose names a floor the loader does not enforce.
 
 ## Workflow discipline (mandatory)
 
