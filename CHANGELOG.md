@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- **The autosaves trim is gone.** `trim_autosave_fields()`, its `rest_request_before_callbacks` hook and `AUTOSAVE_FIELDS` asked the block editor's autosaves preload for raw content so `WP_REST_Revisions_Controller` rendered none of it — a block-editor fix that touched WordPress core and had nothing to do with warming a cache, which is why the README had to warn readers they might meet it in a stack trace. The code and its reasoning are kept in dndocker's `docs/notes/autosaves-trim.md` for a home whose subject is the editor. No shim: a site that relied on it pays the editor's own preload render again.
+
 ## [0.6.1] - 2026-08-31
 
 ### Fixed

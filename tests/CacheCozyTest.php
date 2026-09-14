@@ -172,37 +172,20 @@ class CacheCozyTest extends TestCase {
 		$this->assertSame( \trim( $want[1] ), \trim( $got[1] ), 'the drop-in header trails the plugin' );
 	}
 
-	// ── Autosave preload: the editor's own 26 seconds ───────────────────────
+	// ── The drop-in warms; it touches nothing else ──────────────────────────
 
-	public function test_an_autosave_request_asks_for_raw_content_only(): void {
-		// WP_REST_Revisions_Controller applies `the_content` per item, gated on
-		// `content.rendered` being among the requested fields. The editor reads
-		// `content.raw`, so naming the raw fields skips a render the editor
-		// throws away — eleven of them, 2.3s each, inside the page response.
-		$request = new \WP_REST_Request( [], '/wp/v2/posts/3663570/autosaves' );
-
-		Cache_Cozy::trim_autosave_fields( null, null, $request );
-
-		$fields = $request->get_param( '_fields' );
-		$this->assertContains( 'content.raw', $fields );
-		$this->assertNotContains( 'content', $fields, 'the parent field would include rendered' );
-		$this->assertNotContains( 'content.rendered', $fields );
-	}
-
-	public function test_an_explicit_field_list_is_left_alone(): void {
-		$request = new \WP_REST_Request( [ '_fields' => [ 'id', 'content' ] ], '/wp/v2/posts/9/autosaves' );
-
-		Cache_Cozy::trim_autosave_fields( null, null, $request );
-
-		$this->assertSame( [ 'id', 'content' ], $request->get_param( '_fields' ) );
-	}
-
-	public function test_only_autosave_routes_are_trimmed(): void {
-		$request = new \WP_REST_Request( [], '/wp/v2/posts/3663570' );
-
-		Cache_Cozy::trim_autosave_fields( null, null, $request );
-
-		$this->assertNull( $request->get_param( '_fields' ) );
+	public function test_register_touches_no_rest_request(): void {
+		// A cache warmer has no business in the editor's REST preload; the
+		// autosaves trim that once lived here is kept in dndocker's notes.
+		$saved                  = $GLOBALS['_wp_actions'] ?? [];
+		$GLOBALS['_wp_actions'] = [];
+		try {
+			Cache_Cozy::register();
+			$this->assertArrayNotHasKey( 'rest_request_before_callbacks', $GLOBALS['_wp_actions'] );
+			$this->assertFalse( \method_exists( Cache_Cozy::class, 'trim_autosave_fields' ) );
+		} finally {
+			$GLOBALS['_wp_actions'] = $saved;
+		}
 	}
 
 	// ── Secret-gated warm-request detection ─────────────────────────────────
