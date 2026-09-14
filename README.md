@@ -12,8 +12,6 @@ Cache Cozy is two cooperating pieces:
 
 The halves are independent, and neither schedules anything by itself. The tick node calls the drop-in's warm directly from the Job Worker, so a site running the substrate needs no cron event at all. Without the substrate, the drop-in still warms on wp-cron — but only once you schedule `newspack_cache_cozy_tick` yourself. The drop-in registers the handler and the recurrence; it never registers the event.
 
-The drop-in also trims the REST autosaves endpoint, which is unrelated to warming and worth knowing about before you meet it in a stack trace. `WP_REST_Revisions_Controller` applies `the_content` per autosave whenever `content.rendered` is among the requested fields, and the block editor reads `content.raw`. On a post with eleven autosaves that render cost 2.3 seconds apiece *inside* the page response, because `edit-form-blocks.php` preloads `{type}/{id}/autosaves?context=edit` through `rest_do_request()`. `Cache_Cozy::trim_autosave_fields()` sets `_fields` to the twelve the editor actually consumes on any `/autosaves` request carrying none. An explicit `_fields` still wins.
-
 ## Requirements
 
 - PHP 8.2+

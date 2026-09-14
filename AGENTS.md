@@ -123,7 +123,6 @@ Everything a site or an operator touches.
 | `newspack_nodes/job_handlers` | `Cache_Cozy_Tick_Node::init()` | Registers the `cache_cozy` handler |
 | `newspack_cache_cozy_tick` | drop-in `register()` | Cron hook for `run_tick()`; NOT auto-scheduled |
 | `cron_schedules` | drop-in `register()` | Adds the self-owned 60s `newspack_cache_cozy_minute` recurrence, so scheduling never depends on another plugin |
-| `rest_request_before_callbacks` | drop-in `register()` | `trim_autosave_fields()` sets `_fields` on `/autosaves` requests that carry none |
 | `password_protected_is_active` | warm request only | Lets the loopback reach the real homepage rather than an access gate |
 | `determine_current_user` (`PHP_INT_MAX`) | warm request only | Forces the warm render logged-OUT, or Newspack disables block caching and we rebuild but cache none |
 
