@@ -8,11 +8,11 @@
 	"scripts": {
 		"build": "true",
 		"release:archive": "./build-release.sh",
-		"fix:php": "phpcbf",
+		"fix:php": "./vendor/bin/phpcbf",
 		"fix:js": "true",
 		"fix:scss": "true",
 		"format": "true",
-		"lint:php": "phpcs && php scripts/lint-comments.php .",
+		"lint:php": "./vendor/bin/phpcs && php scripts/lint-comments.php .",
 		"lint:js": "true && node scripts/lint-comments.mjs . && node scripts/lint-contract.mjs",
 		"lint:scss": "true",
 		"lint:shell": "shellcheck scripts/pre-push scripts/*.sh",
