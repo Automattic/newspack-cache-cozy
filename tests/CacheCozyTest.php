@@ -12,7 +12,6 @@
 namespace Newspack_Cache_Cozy\Tests;
 
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Medium;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use Newspack_Cache_Cozy\Cache_Cozy;
@@ -21,14 +20,12 @@ use Newspack_Nodes\Tests\TestCase;
 
 #[CoversClass( Cache_Cozy::class )]
 /**
- * Medium — PHPUnit only marks size per CLASS. 84 tests in 0.35s even beside two other
- * suites, so nothing here is a slow unit: what exceeded the 1s small-test limit was the
- * FIRST test paying the process's warm-up while the pre-push gate ran a coverage pass
- * beside it. That reports as a risky test whose assertion never ran — a guard that stopped
- * guarding without saying so. One test also forks (`RunInSeparateProcess`), which
- * re-bootstraps the substrate and is medium by any reading.
+ * Nothing here is a slow unit: 86 tests in 0.27s, 0.59s under coverage. What once
+ * exceeded the one-second limit was the FIRST test paying the process's warm-up while the
+ * pre-push gate ran a coverage pass beside it, and one test forks
+ * (`RunInSeparateProcess`), which re-bootstraps the substrate. `failOnRisky` makes such an
+ * abort a failed run, so keep the warm-up off the first test rather than buying time.
  */
-#[Medium]
 class CacheCozyTest extends TestCase {
 
 	private mixed $saved_object_cache = null;
