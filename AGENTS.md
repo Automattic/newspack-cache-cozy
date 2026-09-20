@@ -46,6 +46,8 @@ cd tests && ../vendor/bin/phpunit --enforce-time-limit   # unit tests
 cd tests && ./run-coverage.sh                            # + clover under $TEST_TMP
 ```
 
+`phpunit.xml` sets no `defaultTimeLimit`, so `--enforce-time-limit` holds every test to PHPUnit's one second, and `failOnRisky="true"` beside `failOnWarning="true"` makes a breach fail the run rather than print `OK, but there were issues!`. `#[Medium]` and `#[Large]` are not the way back under the limit, and no class declares one: a test must not wait in real time — it drives a seam, as the substrate's `Core::$clock` and `Event_Framework::$sleep` are there for.
+
 `package.json` declares six lint scripts. Every plugin declares the same names whether or not it owns that file type, so the shared hooks can call them uniformly: `pre-push` runs `lint:php`, `lint:js` and `lint:scss`, each scoped to the file types the push touched, and `lint-staged` runs `lint:phpstan` on staged PHP and `shellcheck` on staged shell.
 
 | Script | Runs |

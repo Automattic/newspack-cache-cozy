@@ -5,6 +5,7 @@
          colors="true"
          cacheDirectory="/tmp/phpunit-cache-newspack-cache-cozy"
          failOnWarning="true"
+         failOnRisky="true"
          beStrictAboutOutputDuringTests="false">
     <testsuites>
         <testsuite name="Unit Tests">
