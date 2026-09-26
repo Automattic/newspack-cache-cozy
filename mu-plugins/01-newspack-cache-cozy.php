@@ -430,18 +430,18 @@ class Cache_Cozy {
 	/**
 	 * Encrypt + store the loopback credential (the `bin/schedule-cache-cozy.sh`
 	 * operator script stores it via `wp eval`, reading the plaintext off stdin so
-	 * it never lands in `ps`). Empty input clears it. Stored non-autoloaded.
+	 * it never lands in `ps`). Stored non-autoloaded.
+	 *
+	 * Empty input clears it by storing `''`, never by deleting the row: an absent
+	 * row lands in a worker's cached `notoptions`, and that stale copy written
+	 * back to a shared object cache would hide a credential stored later.
 	 *
 	 * @api Operator entry point: bin/schedule-cache-cozy.sh calls it via wp eval.
 	 * @param string $credential "user:application password".
 	 */
 	public static function store_auth( string $credential ): void {
 		$credential = \trim( $credential );
-		if ( '' === $credential ) {
-			\delete_option( self::AUTH_OPTION );
-			return;
-		}
-		\update_option( self::AUTH_OPTION, self::encrypt( $credential ), false );
+		\update_option( self::AUTH_OPTION, '' === $credential ? '' : self::encrypt( $credential ), false );
 	}
 
 	/**
@@ -467,6 +467,8 @@ class Cache_Cozy {
 	 * @param string $cold_groups Comma-joined cold-group override (empty = drop-in default).
 	 */
 	public static function run_tick( string $path = '/', string $cold_groups = '' ): void {
+		// The worker lives for minutes; see what the operator wrote meanwhile.
+		self::forget_cached_options();
 		// @longform Single-flight: skip if a prior render is still in flight (the lock
 		// also auto-expires, so a crashed render can't wedge the warmer).
 		if ( \get_transient( self::LOCK ) ) {
@@ -584,6 +586,25 @@ class Cache_Cozy {
 	/** 32-byte key from wp_salt('auth') — DB-only access can't derive it. Matches Server_Registry. */
 	private static function encryption_key(): string {
 		return \sodium_crypto_generichash( \wp_salt( 'auth' ), '', SODIUM_CRYPTO_SECRETBOX_KEYBYTES );
+	}
+
+	/**
+	 * Drop this process's cached copy of every option, so a tick reads the
+	 * secret, credential and lock another process wrote. The same rule as
+	 * newspack-nodes' `Config::invalidate_options_cache()`, copied because this
+	 * drop-in runs with no other Newspack plugin loaded.
+	 *
+	 * With an external object cache the writer already stored the value there,
+	 * so only the runtime copy is flushed: deleting a key would evict the
+	 * shared entry. Without one the cache is this process's alone, and
+	 * flushing the `options` group keeps every other group.
+	 */
+	private static function forget_cached_options(): void {
+		if ( \wp_using_ext_object_cache() ) {
+			\wp_cache_flush_runtime();
+			return;
+		}
+		\wp_cache_flush_group( 'options' );
 	}
 
 	/**

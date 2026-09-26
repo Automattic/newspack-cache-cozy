@@ -164,46 +164,6 @@ if ( ! function_exists( 'wp_localize_script' ) ) {
 	}
 }
 
-// Overrides shared shim: adds the _test_get_option_hook seam.
-if ( ! function_exists( 'get_option' ) ) {
-	$GLOBALS['_wp_options'] = [];
-	function get_option( string $key, mixed $default = false ): mixed {
-		// Test seam: lets a test simulate the production wpdb->query → query-filter
-		// → Core::hook_start chain that real get_option triggers when alloptions
-		// isn't cached. The hook fires before the option lookup, mirroring the
-		// real recursion window.
-		if ( isset( $GLOBALS['_test_get_option_hook'] ) ) {
-			( $GLOBALS['_test_get_option_hook'] )( $key );
-		}
-		return $GLOBALS['_wp_options'][ $key ] ?? $default;
-	}
-	// Records the autoload arg per option so tests can assert autoload
-	// hygiene (hot-path scalars autoloaded, large/rare ones not). Mirrors
-	// WP's 3-arg signature; `null` means "caller didn't specify" (WP keeps
-	// the existing flag, or defaults a new option to autoloaded).
-	$GLOBALS['_wp_option_autoload'] = [];
-	function update_option( string $key, mixed $value, $autoload = null ): bool {
-		$GLOBALS['_wp_options'][ $key ]          = $value;
-		$GLOBALS['_wp_option_autoload'][ $key ]  = $autoload;
-		return true;
-	}
-	function delete_option( string $key ): bool {
-		unset( $GLOBALS['_wp_options'][ $key ] );
-		return true;
-	}
-	// WP 6.6+ autoload setter — records the requested flag so the one-time
-	// autoload-correction sweep can be asserted.
-	$GLOBALS['_wp_set_option_autoload'] = [];
-	function wp_set_option_autoload( string $option, $autoload ): bool {
-		$GLOBALS['_wp_set_option_autoload'][ $option ] = $autoload;
-		$GLOBALS['_wp_option_autoload'][ $option ]     = $autoload;
-		return true;
-	}
-	function wp_salt( string $scheme = 'auth' ): string {
-		return 'TEST_SALT_FOR_' . $scheme;
-	}
-}
-
 // Overrides shared shim: 403 when logged in (shared: always 401).
 if ( ! function_exists( 'rest_authorization_required_code' ) ) {
 	function rest_authorization_required_code(): int {

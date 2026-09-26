@@ -39,7 +39,7 @@ On a site with no substrate, schedule the drop-in's cron event instead — the r
 wp cron event schedule newspack_cache_cozy_tick now newspack_cache_cozy_minute
 ```
 
-`bin/unschedule-cache-cozy.sh` reverses that, deleting the event, the secret, the stored credential and the lock transient. Deleting the plugin runs `uninstall.php`, which removes every `newspack_cache_cozy_` option and transient row.
+`bin/unschedule-cache-cozy.sh` reverses that, deleting the event and the lock transient, and clearing the secret and the stored credential to empty values rather than deleting their rows. Deleting the plugin runs `uninstall.php`, which removes every `newspack_cache_cozy_` option and transient row.
 
 ## Configuration
 
