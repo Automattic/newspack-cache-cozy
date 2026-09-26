@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-# Unschedule the cache-cozy warmer and remove the state it created: the
-# recurring cron event, the secret option, the encrypted auth credential, and
-# the single-flight lock transient.
+# Unschedule the cache-cozy warmer and clear its state: delete the recurring
+# cron event and the single-flight lock transient, and clear the secret and the
+# encrypted auth credential to '' rather than deleting them, as
+# Cache_Cozy::store_auth() clears the credential: an absent row can hide behind
+# a worker's stale cached `notoptions` and mask a value stored later. An empty
+# secret is re-minted on the next warm.
 #
 # Tolerant of already-absent state, but does NOT mask real wp failures: a
 # reachability check runs first, so a bad --path / missing wp / unreachable DB
@@ -26,8 +29,8 @@ WP="${WP:-wp}"
 
 # `cron event delete` removes ALL scheduled instances of the hook.
 "$WP" cron event delete "$HOOK" "$@" || echo "  (no scheduled $HOOK)"
-"$WP" option delete "$SECRET_OPTION" "$@" || echo "  ($SECRET_OPTION not set)"
-"$WP" option delete "$AUTH_OPTION" "$@" || echo "  ($AUTH_OPTION not set)"
+"$WP" option update "$SECRET_OPTION" '' --autoload=no "$@"
+"$WP" option update "$AUTH_OPTION" '' --autoload=no "$@"
 "$WP" transient delete "$LOCK_TRANSIENT" "$@" || echo "  ($LOCK_TRANSIENT not set)"
 
 echo "cache cozy warmer unscheduled and cleaned up"

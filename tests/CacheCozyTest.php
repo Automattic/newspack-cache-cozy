@@ -384,6 +384,150 @@ class CacheCozyTest extends TestCase {
 		unset( $GLOBALS['_wp_options']['newspack_cache_cozy_auth'] );
 	}
 
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_run_tick_sends_a_credential_another_process_rotated(): void {
+		// A worker's WordPress caches the non-autoloaded option on first read.
+		require_once \dirname( __DIR__, 2 ) . '/newspack-nodes/tests/Helpers/wp-object-cache-stub.php';
+		$GLOBALS['_wp_test_home_url'] = 'https://www.bendsource.com';
+		Cache_Cozy::store_auth( 'svc:rotated 5150 wxyz' );
+		$rotated = $GLOBALS['_wp_options']['newspack_cache_cozy_auth'];
+		Cache_Cozy::store_auth( 'svc:original 7302 abcd' );
+		Cache_Cozy::run_tick();
+
+		// The operator's rotation reaches the shared cache, not this worker's copy.
+		\wp_test_write_elsewhere( 'newspack_cache_cozy_auth', $rotated, false );
+		$GLOBALS['_wp_cache_flushes'] = [];
+		Cache_Cozy::run_tick();
+
+		$this->assertSame(
+			'Basic ' . base64_encode( 'svc:rotated 5150 wxyz' ),
+			$GLOBALS['_wp_test_remote_gets'][1]['args']['headers']['Authorization'] ?? null
+		);
+		$this->assertSame( [ 'runtime' ], $GLOBALS['_wp_cache_flushes'], 'one flush per tick, evicting nothing shared' );
+	}
+
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_run_tick_sends_a_credential_stored_after_the_worker_read_none(): void {
+		// WordPress caches the ABSENCE of a row it read, in `notoptions`.
+		require_once \dirname( __DIR__, 2 ) . '/newspack-nodes/tests/Helpers/wp-object-cache-stub.php';
+		$GLOBALS['_wp_test_home_url'] = 'https://www.bendsource.com';
+		Cache_Cozy::store_auth( 'svc:late 8812 qrst' );
+		$sealed = $GLOBALS['_wp_options']['newspack_cache_cozy_auth'];
+		\delete_option( 'newspack_cache_cozy_auth' );
+		Cache_Cozy::run_tick();
+		$this->assertArrayNotHasKey( 'Authorization', $GLOBALS['_wp_test_remote_gets'][0]['args']['headers'] ?? [] );
+
+		// The operator's script stores it from another process.
+		\wp_test_write_elsewhere( 'newspack_cache_cozy_auth', $sealed, false );
+		Cache_Cozy::run_tick();
+
+		$this->assertSame(
+			'Basic ' . base64_encode( 'svc:late 8812 qrst' ),
+			$GLOBALS['_wp_test_remote_gets'][1]['args']['headers']['Authorization'] ?? null
+		);
+	}
+
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_run_tick_sends_a_secret_another_process_rotated(): void {
+		require_once \dirname( __DIR__, 2 ) . '/newspack-nodes/tests/Helpers/wp-object-cache-stub.php';
+		$GLOBALS['_wp_test_home_url'] = 'https://www.bendsource.com';
+		Cache_Cozy::run_tick();
+		$this->assertNotSame( '', $GLOBALS['_wp_options']['newspack_cache_cozy_secret'] );
+
+		// Another process replaces the secret the loopback checks.
+		\wp_test_write_elsewhere( 'newspack_cache_cozy_secret', 'b7c0ffee5eed4a11d00d0123456789ab', false );
+		Cache_Cozy::run_tick();
+
+		$this->assertStringContainsString( 'cache_cozy_warm=b7c0ffee5eed4a11d00d0123456789ab', $GLOBALS['_wp_test_remote_gets'][1]['url'] );
+	}
+
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_run_tick_without_an_external_cache_flushes_only_the_options_group(): void {
+		// No drop-in: the cache is this process's alone, and a full flush would
+		// drop every other group.
+		require_once \dirname( __DIR__, 2 ) . '/newspack-nodes/tests/Helpers/wp-object-cache-stub.php';
+		$GLOBALS['_wp_using_ext_object_cache'] = false;
+		$GLOBALS['_wp_test_home_url']          = 'https://www.bendsource.com';
+		Cache_Cozy::store_auth( 'svc:rotated 6061 mnop' );
+		$rotated = $GLOBALS['_wp_options']['newspack_cache_cozy_auth'];
+		Cache_Cozy::store_auth( 'svc:original 4417 efgh' );
+		Cache_Cozy::run_tick();
+
+		\wp_test_write_elsewhere( 'newspack_cache_cozy_auth', $rotated, false );
+		$GLOBALS['_wp_cache_flushes'] = [];
+		Cache_Cozy::run_tick();
+
+		$this->assertSame(
+			'Basic ' . base64_encode( 'svc:rotated 6061 mnop' ),
+			$GLOBALS['_wp_test_remote_gets'][1]['args']['headers']['Authorization'] ?? null
+		);
+		$this->assertSame( [ 'options' ], $GLOBALS['_wp_cache_flushes'] );
+	}
+
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_warm_url_and_auth_header_read_through_the_cache(): void {
+		// Both are public, so a caller outside the tick must not pay a flush.
+		require_once \dirname( __DIR__, 2 ) . '/newspack-nodes/tests/Helpers/wp-object-cache-stub.php';
+		$GLOBALS['_wp_test_home_url'] = 'https://www.bendsource.com';
+		Cache_Cozy::store_auth( 'svc:direct 2718 ijkl' );
+
+		Cache_Cozy::warm_url();
+		$this->assertSame( 'Basic ' . base64_encode( 'svc:direct 2718 ijkl' ), Cache_Cozy::auth_header() );
+
+		$this->assertSame( [], $GLOBALS['_wp_cache_flushes'] );
+	}
+
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_the_warm_request_path_neither_flushes_nor_evicts_the_secret(): void {
+		// Any request carrying the param reaches this; it must cost no cache churn.
+		require_once \dirname( __DIR__, 2 ) . '/newspack-nodes/tests/Helpers/wp-object-cache-stub.php';
+		\update_option( 'newspack_cache_cozy_secret', 'c0ld5eed7e57aaaa0000111122223333', false );
+		$_GET['cache_cozy_warm'] = 'not-the-secret';
+
+		Cache_Cozy::maybe_install_for_request();
+
+		$this->assertSame( 'c0ld5eed7e57aaaa0000111122223333', $GLOBALS['_wp_option_cache']['newspack_cache_cozy_secret'] ?? null );
+		$this->assertSame( [], $GLOBALS['_wp_cache_flushes'] );
+	}
+
+	public function test_clearing_the_credential_keeps_the_row_present_and_empty(): void {
+		Cache_Cozy::store_auth( 'svc:cleared 3391 uvwx' );
+
+		Cache_Cozy::store_auth( '   ' );
+
+		$this->assertArrayHasKey( 'newspack_cache_cozy_auth', $GLOBALS['_wp_options'], 'an absent row can hide behind a stale notoptions' );
+		$this->assertSame( '', $GLOBALS['_wp_options']['newspack_cache_cozy_auth'] );
+		$this->assertFalse( $GLOBALS['_wp_option_autoload']['newspack_cache_cozy_auth'] );
+		$this->assertSame( '', Cache_Cozy::auth_header() );
+	}
+
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_a_stale_notoptions_cannot_hide_a_credential_stored_after_a_clear(): void {
+		require_once \dirname( __DIR__, 2 ) . '/newspack-nodes/tests/Helpers/wp-object-cache-stub.php';
+		$GLOBALS['_wp_test_home_url'] = 'https://www.bendsource.com';
+		Cache_Cozy::store_auth( 'svc:restored 9924 yzab' );
+		$sealed = $GLOBALS['_wp_options']['newspack_cache_cozy_auth'];
+		Cache_Cozy::store_auth( '' );
+		Cache_Cozy::run_tick();
+
+		// Stored elsewhere; then this worker writes back its own `notoptions`.
+		\wp_test_write_elsewhere( 'newspack_cache_cozy_auth', $sealed, false );
+		\get_option( 'newspack_cache_cozy_probe_never_stored' );
+		Cache_Cozy::run_tick();
+
+		$this->assertSame(
+			'Basic ' . base64_encode( 'svc:restored 9924 yzab' ),
+			$GLOBALS['_wp_test_remote_gets'][1]['args']['headers']['Authorization'] ?? null
+		);
+	}
+
 	public function test_store_auth_encrypts_the_credential_at_rest(): void {
 		Cache_Cozy::store_auth( 'svc:hunter2 secret' );
 
