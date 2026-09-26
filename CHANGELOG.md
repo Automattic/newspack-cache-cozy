@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.3] - 2026-09-26
+
 ### Fixed
 
 - **Clearing the loopback credential no longer lets a stale cache hide the next one.** `Cache_Cozy::store_auth( '' )` deleted the `newspack_cache_cozy_auth` row, and an absent row lands in WordPress's `notoptions`; a long-running worker holding that list writes it back to a shared object cache on its next miss, hiding a credential stored after the clear until the entry expires. Clearing now stores `''`, non-autoloaded as the credential itself is, which `auth_header()` reads as no credential. `bin/unschedule-cache-cozy.sh` clears that row and the loopback secret's the same way instead of deleting them, and an empty secret is re-minted on the next warm; uninstall still deletes both.
