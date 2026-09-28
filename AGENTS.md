@@ -33,7 +33,7 @@ Every code-writing turn — main Claude AND every subagent — MUST:
 
 WordPress VIP Go (enforced by `phpcs.xml.dist` over `includes/`, `mu-plugins/` and the plugin root): `snake_case`, Yoda conditions, `[]` arrays, tab indentation, spaces inside parens, PHP 8.2+. `VariableAnalysis` is re-raised to an error for unused locals, which VIP Go silences and PHPStan cannot see at any level.
 
-PHPStan runs level 10 plus `phpstan-strict-rules` from `phpstan.neon.dist`, with the same four WordPress-idiom exemptions the substrate config carries (`disallowedEmpty`, `booleansInConditions`, `booleansInLoopConditions`, `disallowedShortTernary`) so a node-consuming plugin lints identically.
+PHPStan runs level 10 plus `phpstan-strict-rules` from `phpstan.neon.dist`, with the same five exemptions the substrate config carries (`disallowedEmpty`, `booleansInConditions`, `booleansInLoopConditions`, `disallowedShortTernary`, `noVariableVariables`) plus `checkDynamicProperties: false`, so a node-consuming plugin lints identically.
 
 Conventional commits, enforced by `commitlint` from the `commit-msg` hook. Inline comments are one line and at most 80 columns; a comment whose full length is necessary opens with `@longform` on its first line. `scripts/lint-comments.php` and `scripts/lint-comments.mjs` are the two halves of that gate.
 
