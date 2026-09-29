@@ -35,7 +35,7 @@
 			"php scripts/fix-blank-lines.php"
 		],
 		"includes/**/*.php": [
-			"php scripts/reorder-node-methods.php --all-classes --check"
+			"php scripts/reorder-node-methods.php --check"
 		],
 		"*.sh": "shellcheck",
 		"scripts/pre-push": "shellcheck"
