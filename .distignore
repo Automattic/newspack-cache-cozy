@@ -6,6 +6,7 @@
 .github
 .gitignore
 .gitkeep
+.superpowers
 *.log
 /bin
 /coverage
