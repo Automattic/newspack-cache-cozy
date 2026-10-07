@@ -1,0 +1,16 @@
+# shellcheck shell=bash
+# newspack-cache-cozy's constants and gates, sourced by scripts/pre-push.
+
+push_gates() { :; }
+container_gates() { :; }
+
+# PHPUnit runs straight from the /services mount, never /usr/src.
+# shellcheck disable=SC2034 # scripts/pre-push reads every constant
+{
+	readonly PLUGIN_SLUG="newspack-cache-cozy"
+	readonly CONTAINER="${HOST}-pyrobase1-1"
+	readonly DEPLOY_CONTAINER="$CONTAINER"
+	readonly DEPLOY_SCRIPT="/services/pyrobase/setup/${PLUGIN_SLUG}.sh"
+	readonly TEST_DIR_IN_CONTAINER="/services/pyrobase/sources/${PLUGIN_SLUG}/tests"
+	readonly COVERAGE_DIR="${PLUGIN_SLUG}-coverage"
+}

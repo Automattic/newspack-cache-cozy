@@ -15,7 +15,7 @@
 		"lint:php": "./vendor/bin/phpcs && php scripts/lint-comments.php .",
 		"lint:js": "true && node scripts/lint-comments.mjs . && node scripts/lint-contract.mjs",
 		"lint:scss": "true",
-		"lint:shell": "shellcheck scripts/pre-push scripts/*.sh",
+		"lint:shell": "shellcheck scripts/pre-push scripts/pre-push.local scripts/*.sh",
 		"lint:phpstan": "vendor/bin/phpstan analyse -c phpstan-deadcode.neon --memory-limit=2G --no-progress",
 		"test:js": "true",
 		"test:js:coverage": "true",
@@ -39,6 +39,7 @@
 			"php scripts/reorder-node-methods.php --check"
 		],
 		"*.sh": "shellcheck",
-		"scripts/pre-push": "shellcheck"
+		"scripts/pre-push": "shellcheck",
+		"scripts/pre-push.local": "shellcheck"
 	}
 }
