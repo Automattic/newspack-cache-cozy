@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`scripts/pre-push` is newspack-nodes' shared hook**, vendored by `sync-shared-scripts.sh`. This plugin's `scripts/pre-push.local` holds only its container constants. `lint:shell` and lint-staged check it too.
+- **`pre-push` checks this plugin's substrate floor.** The shared hook runs `scripts/check-substrate-floor.sh` on every push, after `lint-docs.sh`, so a `version_at_least()` floor below an API the plugin calls fails the push. The vendored `test-*.sh` copies are gone; those self-tests run in newspack-nodes alone.
+
 ## [0.6.3] - 2026-09-26
 
 ### Fixed

@@ -20,7 +20,7 @@ The plugin header `Requires Plugins: newspack-nodes` keeps the substrate active 
 
 Tests bypass the whole loader, requiring the substrate explicitly in `tests/bootstrap.php`.
 
-`scripts/check-substrate-floor.sh` proves that floor is high enough: PHPStan collects every substrate API this plugin calls, resolved to its declaring class, and the script walks the substrate's tags for the earliest one where all of them exist. A floor set too LOW is the failure it exists for — the handshake passes, the plugin wires itself up, and then fatals on a method the older substrate lacks. No hook here runs it: neither `pre-commit` nor `pre-push` invokes it, so after calling a newer substrate API you run it by hand or nothing checks the floor at all. What `pre-push` does run is `scripts/lint-docs.sh`, which fails the push when prose names a floor the loader does not enforce.
+`scripts/check-substrate-floor.sh` proves that floor is high enough: PHPStan collects every substrate API this plugin calls, resolved to its declaring class, and the script walks the substrate's tags for the earliest one where all of them exist. A floor set too LOW is the failure it exists for — the handshake passes, the plugin wires itself up, and then fatals on a method the older substrate lacks. `pre-push` runs it on every push, beside `scripts/lint-docs.sh`, which fails the push when prose names a floor the loader does not enforce.
 
 ## Workflow discipline (mandatory)
 
@@ -55,7 +55,7 @@ cd tests && ./run-coverage.sh                            # + clover under $TEST_
 | `lint:php` | `phpcs`, then `php scripts/lint-comments.php .` |
 | `lint:js` | `node scripts/lint-comments.mjs .`, then `node scripts/lint-contract.mjs` — this plugin ships no JS, so both gates read only the ADR contract and comment shape |
 | `lint:scss` | `true` — a no-op placeholder; no SCSS here |
-| `lint:shell` | `shellcheck scripts/pre-push scripts/*.sh` — the whole-tree pass; no hook calls it |
+| `lint:shell` | `shellcheck scripts/pre-push scripts/pre-push.local scripts/*.sh` — the whole-tree pass; no hook calls it |
 | `lint:phpstan` | `vendor/bin/phpstan analyse -c phpstan-deadcode.neon` — the dead-code layer, which `includes` `phpstan.neon.dist` |
 | `lint:deadcode` | An alias for `lint:phpstan` |
 
@@ -81,9 +81,11 @@ runs `scripts/sync-shared-scripts.sh`, which refreshes this plugin's copy of the
 shared tooling from `../newspack-nodes/scripts/` when that sibling is checked
 out — edit shared scripts THERE, not here. It then runs `lint-staged`: phpcs, the
 node-method order check, `lint:phpstan`, the comment gate, and the blank-line fixer.
+`pre-push` is vendored too; `scripts/pre-push.local`, which it sources and the
+sync never touches, holds only the container constants the shared hook requires.
 
-`pre-push` runs `lint-docs.sh` on every push, lints only the file types the push
-touched, and — when the `<host>-pyrobase1-1` container is up — deploys, runs the
+`pre-push` runs `lint-docs.sh` and `check-substrate-floor.sh` on every push, lints
+only the file types the push touched, and — when the `<host>-pyrobase1-1` container is up — deploys, runs the
 coverage suite inside it, and fails the push if any class falls below 90%
 statement coverage. Without the container it skips those steps, which is the
 right behavior for a standalone clone.
