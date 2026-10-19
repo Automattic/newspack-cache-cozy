@@ -2,8 +2,8 @@
 # Provision the cache-cozy warmer.
 #
 # Stores the encrypted loopback credential. The wp-cron scheduling below is
-# PARKED — the tick is driven elsewhere — so this script currently schedules
-# nothing; re-enable that block to have it register the event again. Requires
+# PARKED — the tick is driven elsewhere — so this script schedules nothing;
+# re-enable that block to have it register the event. Requires
 # the 01-newspack-cache-cozy.php drop-in (it registers the
 # `newspack_cache_cozy_minute` recurrence the parked block schedules against).
 #

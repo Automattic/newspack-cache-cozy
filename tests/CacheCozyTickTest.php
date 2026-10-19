@@ -1,8 +1,8 @@
 <?php
 /**
  * Tests for Cache_Cozy_Tick_Node — the Timer subclass that queues a
- * `cache_cozy` JobWorker job every 60s (replacing the flaky wp-cron trigger),
- * plus its job handler which drops requests older than the interval.
+ * `cache_cozy` JobWorker job every 60s, plus its job handler which drops
+ * requests older than the interval.
  *
  * @package Newspack_Cache_Cozy
  */
@@ -164,8 +164,8 @@ class CacheCozyTickTest extends TestCase {
 
 	public function test_handle_job_drops_incomplete_envelope(): void {
 		// The sole producer (fire()) always emits the full {queued_at, interval,
-		// path, cold_groups} shape. A job missing any field is corrupt (or an old
-		// pre-migration replay) and is dropped, not warmed with guessed defaults.
+		// path, cold_groups} shape. A job missing any field is corrupt and is
+		// dropped, not warmed with guessed defaults.
 		Cache_Cozy_Tick_Node::handle_job( '/', [ 'queued_at' => \time() ] );
 
 		$this->assertCount( 0, $GLOBALS['_wp_test_remote_gets'], 'an incomplete envelope must be dropped, not warmed' );
@@ -224,7 +224,7 @@ class CacheCozyTickTest extends TestCase {
 	}
 
 	public function test_arguments_getter_returns_the_stored_value(): void {
-		// A numeric arg now does a _router hitchhike (was an Event_Framework timer).
+		// A numeric arg arms the _router hitchhike.
 		$router = new Router_Node();
 		$router->name( '_router' );
 

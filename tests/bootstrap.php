@@ -11,7 +11,7 @@ if ( \function_exists( 'posix_getuid' ) && 0 === \posix_getuid() ) {
 }
 
 // Redirect PHP's error_log() to /dev/null so negative-path tests don't spew
-// into test output. (Matches newspack-event-logger-plugins/tests/bootstrap.php:35.)
+// into test output.
 \ini_set( 'error_log', '/dev/null' );
 
 // cache-cozy uses no substrate config in tests (the tick node only needs Core /
