@@ -596,7 +596,7 @@ class Cache_Cozy {
 	 *
 	 * With an external object cache the writer already stored the value there,
 	 * so only the runtime copy is flushed: deleting a key would evict the
-	 * shared entry. Without one the cache is this process's alone, and
+	 * shared entry. Without one the cache belongs to this process alone, and
 	 * flushing the `options` group keeps every other group.
 	 */
 	private static function forget_cached_options(): void {
