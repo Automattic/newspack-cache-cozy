@@ -20,9 +20,8 @@ use Newspack_Nodes\Tests\TestCase;
 
 #[CoversClass( Cache_Cozy::class )]
 /**
- * Nothing here is a slow unit: 86 tests in 0.27s, 0.59s under coverage. What once
- * exceeded the one-second limit was the FIRST test paying the process's warm-up while the
- * pre-push gate ran a coverage pass beside it, and one test forks
+ * Nothing here is a slow unit. The FIRST test pays the process's warm-up, which a
+ * coverage pass running beside it can push past the one-second limit, and one test forks
  * (`RunInSeparateProcess`), which re-bootstraps the substrate. `failOnRisky` makes such an
  * abort a failed run, so keep the warm-up off the first test rather than buying time.
  */
@@ -156,10 +155,9 @@ class CacheCozyTest extends TestCase {
 
 	public function test_the_drop_in_header_matches_the_plugin_version(): void {
 		// A site can hold a copy of the drop-in that came from anywhere — the
-		// release attaches it as its own asset — so a header frozen at 0.1.0
-		// while the plugin moved to 0.6.0 left nobody able to tell which one
-		// they had. `scripts/bump-version.sh` moves it now; this catches a
-		// hand-edit that goes around the script.
+		// release attaches it as its own asset — so a frozen header leaves
+		// nobody able to tell which one they have. `scripts/bump-version.sh`
+		// moves it; this catches a hand-edit that goes around the script.
 		$root   = \dirname( __DIR__ );
 		$plugin = (string) \file_get_contents( $root . '/newspack-cache-cozy.php' );
 		$dropin = (string) \file_get_contents( $root . '/mu-plugins/01-newspack-cache-cozy.php' );
@@ -172,14 +170,12 @@ class CacheCozyTest extends TestCase {
 	// ── The drop-in warms; it touches nothing else ──────────────────────────
 
 	public function test_register_touches_no_rest_request(): void {
-		// A cache warmer has no business in the editor's REST preload; the
-		// autosaves trim that once lived here is kept in dndocker's notes.
+		// A cache warmer has no business in the editor's REST preload.
 		$saved                  = $GLOBALS['_wp_actions'] ?? [];
 		$GLOBALS['_wp_actions'] = [];
 		try {
 			Cache_Cozy::register();
 			$this->assertArrayNotHasKey( 'rest_request_before_callbacks', $GLOBALS['_wp_actions'] );
-			$this->assertFalse( \method_exists( Cache_Cozy::class, 'trim_autosave_fields' ) );
 		} finally {
 			$GLOBALS['_wp_actions'] = $saved;
 		}

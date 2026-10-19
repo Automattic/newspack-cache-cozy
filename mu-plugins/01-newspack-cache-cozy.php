@@ -560,7 +560,7 @@ class Cache_Cozy {
 
 	/**
 	 * Decrypt a stored value. A non-prefixed value (plaintext typed straight into
-	 * wp-config / a legacy row) passes through unchanged; '' on decrypt failure.
+	 * wp-config or the option) passes through unchanged; '' on decrypt failure.
 	 *
 	 * @param string $stored Stored value (encrypted or plaintext).
 	 * @return string
@@ -583,7 +583,10 @@ class Cache_Cozy {
 		return false === $plaintext ? '' : $plaintext;
 	}
 
-	/** 32-byte key from wp_salt('auth') — DB-only access can't derive it. Matches Server_Registry. */
+	/**
+	 * 32-byte key from wp_salt('auth') — DB-only access can't derive it.
+	 * Matches newspack-nodes' `Vault::encryption_key()`.
+	 */
 	private static function encryption_key(): string {
 		return \sodium_crypto_generichash( \wp_salt( 'auth' ), '', SODIUM_CRYPTO_SECRETBOX_KEYBYTES );
 	}
