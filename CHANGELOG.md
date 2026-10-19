@@ -7,8 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
+## [0.6.4] - 2026-10-19
 
+### Changed
+- **Plain English throughout**, and the version bump moves the drop-in's header through the shared `DROP_IN` setting in place of its own `bump_extra`.
 - **`scripts/pre-push` is newspack-nodes' shared hook**, vendored by `sync-shared-scripts.sh`. This plugin's `scripts/pre-push.local` holds only its container constants. `lint:shell` and lint-staged check it too.
 - **`pre-push` checks this plugin's substrate floor.** The shared hook runs `scripts/check-substrate-floor.sh` on every push, after `lint-docs.sh`, so a `version_at_least()` floor below an API the plugin calls fails the push. The vendored `test-*.sh` copies are gone; those self-tests run in newspack-nodes alone.
 
