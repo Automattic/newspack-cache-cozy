@@ -92,7 +92,7 @@ right behavior for a standalone clone.
 
 ## Versioning & Release
 
-The version lives in four places: the `Version:` header and `NEWSPACK_CACHE_COZY_VERSION` constant in `newspack-cache-cozy.php`, `"version"` in `package.json` (and its lock, via `npm version`), and the `Version:` header of the `mu-plugins/01-newspack-cache-cozy.php` drop-in. Never hand-edit them — `./scripts/bump-version.sh` rewrites all four, the drop-in through the shared flow's `bump_extra` hook, and `CacheCozyTest` fails if the plugin and drop-in headers ever disagree. The drop-in ships as its own asset and a site can hold a copy from anywhere, so a frozen header leaves nobody able to tell which one they have.
+The version lives in four places: the `Version:` header and `NEWSPACK_CACHE_COZY_VERSION` constant in `newspack-cache-cozy.php`, `"version"` in `package.json` (and its lock, via `npm version`), and the `Version:` header of the `mu-plugins/01-newspack-cache-cozy.php` drop-in. Never hand-edit them — `./scripts/bump-version.sh` rewrites all four, the drop-in through the shared flow's `DROP_IN` knob, and `CacheCozyTest` fails if the plugin and drop-in headers ever disagree. The drop-in ships as its own asset and a site can hold a copy from anywhere, so a frozen header leaves nobody able to tell which one they have.
 
 This plugin imports no `@newspack-nodes/*` build alias, so it carries no substrate pin in `release.yml` and has no release-ordering constraint.
 
