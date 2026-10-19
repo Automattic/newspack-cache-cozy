@@ -447,8 +447,8 @@ class CacheCozyTest extends TestCase {
 	#[RunInSeparateProcess]
 	#[PreserveGlobalState( false )]
 	public function test_run_tick_without_an_external_cache_flushes_only_the_options_group(): void {
-		// No drop-in: the cache is this process's alone, and a full flush would
-		// drop every other group.
+		// No drop-in: the cache belongs to this process alone, and a full flush
+		// would drop every other group.
 		require_once \dirname( __DIR__, 2 ) . '/newspack-nodes/tests/Helpers/wp-object-cache-stub.php';
 		$GLOBALS['_wp_using_ext_object_cache'] = false;
 		$GLOBALS['_wp_test_home_url']          = 'https://www.bendsource.com';
