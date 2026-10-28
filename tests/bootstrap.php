@@ -156,14 +156,6 @@ if ( ! function_exists( 'wp_enqueue_script' ) ) {
 	}
 }
 
-// Overrides shared shim: variadic append (shared keys by handle).
-if ( ! function_exists( 'wp_localize_script' ) ) {
-	function wp_localize_script( ...$args ): bool {
-		$GLOBALS['_localized_scripts'][] = $args;
-		return true;
-	}
-}
-
 // Overrides shared shim: 403 when logged in (shared: always 401).
 if ( ! function_exists( 'rest_authorization_required_code' ) ) {
 	function rest_authorization_required_code(): int {
