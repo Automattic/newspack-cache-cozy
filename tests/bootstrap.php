@@ -26,59 +26,6 @@ if ( ! function_exists( 'plugin_dir_url' ) ) {
 	}
 }
 
-// Overrides shared shim: add_filter records _wp_test_filters by priority.
-if ( ! function_exists( 'do_action' ) ) {
-	$GLOBALS['_wp_actions']      = [];
-	$GLOBALS['_wp_test_filters'] = [];
-	function do_action( string $hook, ...$args ): void {
-		foreach ( $GLOBALS['_wp_actions'][ $hook ] ?? [] as $cb ) {
-			$cb( ...$args );
-		}
-	}
-	function add_action( string $hook, callable $cb, int $priority = 10, int $accepted_args = 1 ): void {
-		$GLOBALS['_wp_actions'][ $hook ][] = $cb;
-	}
-	function apply_filters( string $hook, mixed $value, ...$args ): mixed {
-		foreach ( $GLOBALS['_wp_actions'][ $hook ] ?? [] as $cb ) {
-			$value = $cb( $value, ...$args );
-		}
-		return $value;
-	}
-	function add_filter( string $hook, callable $cb, int $priority = 10, int $accepted_args = 1 ): void {
-		$GLOBALS['_wp_actions'][ $hook ][]                      = $cb;
-		$GLOBALS['_wp_test_filters'][ $hook ][ $priority ][]    = $cb;
-	}
-}
-
-if ( ! class_exists( '\WP_Hook' ) ) {
-	// Minimal WP_Hook stub: stores callbacks keyed by priority, provides
-	// remove_filter() so Core::wrap_callbacks's introspection round-trips.
-	// Real WP_Hook is much richer but our tests only care about the callbacks
-	// array shape (`priority => callback_id => [function, accepted_args]`).
-	class WP_Hook {
-		public array $callbacks = [];
-		public function remove_filter( string $hook, $function_to_remove, int $priority = 10 ): bool {
-			unset( $this->callbacks[ $priority ][ _wp_filter_build_unique_id( $hook, $function_to_remove, $priority ) ] );
-			return true;
-		}
-	}
-	if ( ! function_exists( '_wp_filter_build_unique_id' ) ) {
-		function _wp_filter_build_unique_id( $hook, $cb, $priority ) {
-			if ( is_string( $cb ) ) {
-				return $cb;
-			}
-			if ( is_object( $cb ) ) {
-				return spl_object_hash( $cb );
-			}
-			if ( is_array( $cb ) ) {
-				$obj = is_object( $cb[0] ) ? spl_object_hash( $cb[0] ) : $cb[0];
-				return $obj . '::' . $cb[1];
-			}
-			return 'unknown';
-		}
-	}
-}
-
 // Overrides shared shims: array-params request + public-prop responses.
 if ( ! class_exists( '\WP_REST_Request' ) ) {
 	class WP_REST_Request {
