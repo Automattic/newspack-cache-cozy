@@ -247,12 +247,6 @@ if ( ! function_exists( 'set_transient' ) ) {
 	}
 }
 
-if ( ! function_exists( 'wp_generate_uuid4' ) ) {
-	function wp_generate_uuid4(): string {
-		return \bin2hex( \random_bytes( 16 ) );
-	}
-}
-
 if ( ! function_exists( 'wp_parse_args' ) ) {
 	function wp_parse_args( $args, array $defaults = [] ): array {
 		if ( is_object( $args ) ) {
