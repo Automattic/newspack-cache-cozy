@@ -27,9 +27,7 @@ use Newspack_Nodes\Message;
 use Newspack_Nodes\Schema_Reflection;
 use Newspack_Nodes\Timer_Node;
 
-if ( ! \defined( 'ABSPATH' ) ) {
-	exit;
-}
+\defined( 'ABSPATH' ) || exit;
 
 class Cache_Cozy_Tick_Node extends Timer_Node {
 	/** Positional args parsed via node_schema(). */

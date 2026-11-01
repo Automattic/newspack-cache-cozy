@@ -52,7 +52,7 @@ cd tests && ./run-coverage.sh                            # + clover under $TEST_
 
 | Script | Runs |
 |---|---|
-| `lint:php` | `phpcs`, then `php scripts/lint-comments.php .` |
+| `lint:php` | `phpcs`, the vendored `scripts/Sniffs/WP/AbspathGuardSniff.php` among its rules, then `php scripts/lint-comments.php .` |
 | `lint:js` | `node scripts/lint-comments.mjs .`, then `node scripts/lint-contract.mjs` — this plugin ships no JS, so both gates read only the ADR contract and comment shape |
 | `lint:scss` | `true` — a no-op placeholder; no SCSS here |
 | `lint:shell` | `shellcheck scripts/pre-push scripts/pre-push.local scripts/*.sh` — the whole-tree pass; no hook calls it |
