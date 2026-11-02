@@ -79,12 +79,17 @@ git config core.hooksPath scripts    # what composer's post-install-cmd runs
 A clone that has never run `composer install` has no hooks. `pre-commit` first
 runs `scripts/sync-shared-scripts.sh`, which refreshes this plugin's copy of the
 shared tooling from `../newspack-nodes/scripts/` when that sibling is checked
-out — edit shared scripts THERE, not here. It then runs `lint-staged`: phpcs, the
+out — edit shared scripts THERE, not here. It then runs the private-data gate,
+`scripts/lint-private-data.py`, over the staged diff (`commit-msg` runs it over the message),
+because `scripts/pre-push.local` sets `PRIVATE_DATA_GATE=1`, and
+`lint-staged`: phpcs, the
 node-method order check, `lint:phpstan`, the comment gate, and the blank-line fixer.
 `pre-push` is vendored too; `scripts/pre-push.local`, which it sources and the
-sync never touches, holds only the container constants the shared hook requires.
+sync never touches, holds the container constants the shared hook requires and
+`PRIVATE_DATA_GATE=1`, which turns the private-data gate on.
 
-`pre-push` runs `lint-docs.sh` and `check-substrate-floor.sh` on every push, lints
+`pre-push` runs the private-data gate over every pushed commit, `lint-docs.sh`
+and `check-substrate-floor.sh` on every push, lints
 only the file types the push touched, and — when the `<host>-pyrobase1-1` container is up — deploys, runs the
 coverage suite inside it, and fails the push if any class falls below 90%
 statement coverage. Without the container it skips those steps, which is the
