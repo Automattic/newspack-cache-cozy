@@ -269,7 +269,7 @@ class CacheCozyTest extends TestCase {
 	}
 
 	public function test_maybe_install_honors_secret_gated_groups_override(): void {
-		$GLOBALS['_wp_test_home_url'] = 'https://www.client-347.example';
+		$GLOBALS['_wp_test_home_url'] = 'https://www.example.com';
 		$GLOBALS['wp_object_cache']   = $this->fake_object_cache();
 		$_GET['cache_cozy_warm']      = Cache_Cozy::secret();
 		$_GET['cache_cozy_groups']    = 'only_this,and_that';
@@ -286,7 +286,7 @@ class CacheCozyTest extends TestCase {
 	public function test_groups_param_ignored_without_a_valid_secret(): void {
 		// The groups override is post-secret only: a wrong secret installs nothing,
 		// so the override can't be abused to cool arbitrary groups on a real request.
-		$GLOBALS['_wp_test_home_url'] = 'https://www.client-347.example';
+		$GLOBALS['_wp_test_home_url'] = 'https://www.example.com';
 		$real                         = $this->fake_object_cache();
 		$GLOBALS['wp_object_cache']   = $real;
 		$_GET['cache_cozy_warm']      = 'wrong-secret';
@@ -314,16 +314,16 @@ class CacheCozyTest extends TestCase {
 	}
 
 	public function test_warm_url_targets_home_with_secret_param(): void {
-		$GLOBALS['_wp_test_home_url'] = 'https://www.client-347.example';
+		$GLOBALS['_wp_test_home_url'] = 'https://www.example.com';
 
 		$url = Cache_Cozy::warm_url();
 
-		$this->assertStringStartsWith( 'https://www.client-347.example/', $url );
+		$this->assertStringStartsWith( 'https://www.example.com/', $url );
 		$this->assertStringContainsString( 'cache_cozy_warm=' . Cache_Cozy::secret(), $url );
 	}
 
 	public function test_warm_url_includes_path_and_cold_groups(): void {
-		$GLOBALS['_wp_test_home_url'] = 'https://www.client-347.example';
+		$GLOBALS['_wp_test_home_url'] = 'https://www.example.com';
 
 		$url = Cache_Cozy::warm_url( '/events', 'newspack_blocks,transient' );
 
@@ -333,7 +333,7 @@ class CacheCozyTest extends TestCase {
 	}
 
 	public function test_warm_url_omits_groups_param_when_empty(): void {
-		$GLOBALS['_wp_test_home_url'] = 'https://www.client-347.example';
+		$GLOBALS['_wp_test_home_url'] = 'https://www.example.com';
 
 		$this->assertStringNotContainsString( 'cache_cozy_groups', Cache_Cozy::warm_url( '/', '' ) );
 	}
@@ -341,7 +341,7 @@ class CacheCozyTest extends TestCase {
 	// ── Cron tick (loopback) ────────────────────────────────────────────────
 
 	public function test_run_tick_fires_the_loopback(): void {
-		$GLOBALS['_wp_test_home_url'] = 'https://www.client-347.example';
+		$GLOBALS['_wp_test_home_url'] = 'https://www.example.com';
 
 		Cache_Cozy::run_tick();
 
@@ -353,7 +353,7 @@ class CacheCozyTest extends TestCase {
 	}
 
 	public function test_sslverify_can_be_disabled_via_wp_config_constant_for_self_signed_hosts(): void {
-		$GLOBALS['_wp_test_home_url'] = 'https://www.client-347.example';
+		$GLOBALS['_wp_test_home_url'] = 'https://www.example.com';
 		if ( ! defined( 'NEWSPACK_CACHE_COZY_SSLVERIFY' ) ) {
 			define( 'NEWSPACK_CACHE_COZY_SSLVERIFY', false );
 		}
@@ -367,7 +367,7 @@ class CacheCozyTest extends TestCase {
 		// to PHP (otherwise the proxy serves a cached homepage and the render —
 		// and the cold-cache decorator — never run). The credential is an
 		// application password "user:app password" supplied out-of-band.
-		$GLOBALS['_wp_test_home_url'] = 'https://www.client-347.example';
+		$GLOBALS['_wp_test_home_url'] = 'https://www.example.com';
 		Cache_Cozy::store_auth( 'svc:abcd 1234 efgh ijkl' );
 
 		Cache_Cozy::run_tick();
@@ -385,7 +385,7 @@ class CacheCozyTest extends TestCase {
 	public function test_run_tick_sends_a_credential_another_process_rotated(): void {
 		// A worker's WordPress caches the non-autoloaded option on first read.
 		require_once \dirname( __DIR__, 2 ) . '/newspack-nodes/tests/Helpers/wp-object-cache-stub.php';
-		$GLOBALS['_wp_test_home_url'] = 'https://www.client-347.example';
+		$GLOBALS['_wp_test_home_url'] = 'https://www.example.com';
 		Cache_Cozy::store_auth( 'svc:rotated 5150 wxyz' );
 		$rotated = $GLOBALS['_wp_options']['newspack_cache_cozy_auth'];
 		Cache_Cozy::store_auth( 'svc:original 7302 abcd' );
@@ -408,7 +408,7 @@ class CacheCozyTest extends TestCase {
 	public function test_run_tick_sends_a_credential_stored_after_the_worker_read_none(): void {
 		// WordPress caches the ABSENCE of a row it read, in `notoptions`.
 		require_once \dirname( __DIR__, 2 ) . '/newspack-nodes/tests/Helpers/wp-object-cache-stub.php';
-		$GLOBALS['_wp_test_home_url'] = 'https://www.client-347.example';
+		$GLOBALS['_wp_test_home_url'] = 'https://www.example.com';
 		Cache_Cozy::store_auth( 'svc:late 8812 qrst' );
 		$sealed = $GLOBALS['_wp_options']['newspack_cache_cozy_auth'];
 		\delete_option( 'newspack_cache_cozy_auth' );
@@ -429,7 +429,7 @@ class CacheCozyTest extends TestCase {
 	#[PreserveGlobalState( false )]
 	public function test_run_tick_sends_a_secret_another_process_rotated(): void {
 		require_once \dirname( __DIR__, 2 ) . '/newspack-nodes/tests/Helpers/wp-object-cache-stub.php';
-		$GLOBALS['_wp_test_home_url'] = 'https://www.client-347.example';
+		$GLOBALS['_wp_test_home_url'] = 'https://www.example.com';
 		Cache_Cozy::run_tick();
 		$this->assertNotSame( '', $GLOBALS['_wp_options']['newspack_cache_cozy_secret'] );
 
@@ -447,7 +447,7 @@ class CacheCozyTest extends TestCase {
 		// would drop every other group.
 		require_once \dirname( __DIR__, 2 ) . '/newspack-nodes/tests/Helpers/wp-object-cache-stub.php';
 		$GLOBALS['_wp_using_ext_object_cache'] = false;
-		$GLOBALS['_wp_test_home_url']          = 'https://www.client-347.example';
+		$GLOBALS['_wp_test_home_url']          = 'https://www.example.com';
 		Cache_Cozy::store_auth( 'svc:rotated 6061 mnop' );
 		$rotated = $GLOBALS['_wp_options']['newspack_cache_cozy_auth'];
 		Cache_Cozy::store_auth( 'svc:original 4417 efgh' );
@@ -469,7 +469,7 @@ class CacheCozyTest extends TestCase {
 	public function test_warm_url_and_auth_header_read_through_the_cache(): void {
 		// Both are public, so a caller outside the tick must not pay a flush.
 		require_once \dirname( __DIR__, 2 ) . '/newspack-nodes/tests/Helpers/wp-object-cache-stub.php';
-		$GLOBALS['_wp_test_home_url'] = 'https://www.client-347.example';
+		$GLOBALS['_wp_test_home_url'] = 'https://www.example.com';
 		Cache_Cozy::store_auth( 'svc:direct 2718 ijkl' );
 
 		Cache_Cozy::warm_url();
@@ -507,7 +507,7 @@ class CacheCozyTest extends TestCase {
 	#[PreserveGlobalState( false )]
 	public function test_a_stale_notoptions_cannot_hide_a_credential_stored_after_a_clear(): void {
 		require_once \dirname( __DIR__, 2 ) . '/newspack-nodes/tests/Helpers/wp-object-cache-stub.php';
-		$GLOBALS['_wp_test_home_url'] = 'https://www.client-347.example';
+		$GLOBALS['_wp_test_home_url'] = 'https://www.example.com';
 		Cache_Cozy::store_auth( 'svc:restored 9924 yzab' );
 		$sealed = $GLOBALS['_wp_options']['newspack_cache_cozy_auth'];
 		Cache_Cozy::store_auth( '' );
@@ -534,7 +534,7 @@ class CacheCozyTest extends TestCase {
 	}
 
 	public function test_run_tick_omits_auth_header_when_no_credential(): void {
-		$GLOBALS['_wp_test_home_url'] = 'https://www.client-347.example';
+		$GLOBALS['_wp_test_home_url'] = 'https://www.example.com';
 
 		Cache_Cozy::run_tick();
 
@@ -567,7 +567,7 @@ class CacheCozyTest extends TestCase {
 	}
 
 	public function test_install_happens_on_warm_loopback_request(): void {
-		$GLOBALS['_wp_test_home_url'] = 'https://www.client-347.example';
+		$GLOBALS['_wp_test_home_url'] = 'https://www.example.com';
 		$GLOBALS['wp_object_cache']   = $this->fake_object_cache();
 		$_GET['cache_cozy_warm']      = Cache_Cozy::secret();
 
@@ -577,7 +577,7 @@ class CacheCozyTest extends TestCase {
 	}
 
 	public function test_no_install_on_a_normal_request(): void {
-		$GLOBALS['_wp_test_home_url'] = 'https://www.client-347.example';
+		$GLOBALS['_wp_test_home_url'] = 'https://www.example.com';
 		$real                         = $this->fake_object_cache();
 		$GLOBALS['wp_object_cache']   = $real;
 		// no cache_cozy_warm param
@@ -590,7 +590,7 @@ class CacheCozyTest extends TestCase {
 	// ── #6: warm render excluded from timing stats ──────────────────────────
 
 	public function test_warm_request_marks_worker_type_for_stats_exclusion(): void {
-		$GLOBALS['_wp_test_home_url'] = 'https://www.client-347.example';
+		$GLOBALS['_wp_test_home_url'] = 'https://www.example.com';
 		$GLOBALS['wp_object_cache']   = $this->fake_object_cache();
 		$_GET['cache_cozy_warm']      = Cache_Cozy::secret();
 
@@ -602,7 +602,7 @@ class CacheCozyTest extends TestCase {
 	}
 
 	public function test_normal_request_does_not_mark_worker_type(): void {
-		$GLOBALS['_wp_test_home_url'] = 'https://www.client-347.example';
+		$GLOBALS['_wp_test_home_url'] = 'https://www.example.com';
 
 		Cache_Cozy::maybe_install_for_request();
 
@@ -631,7 +631,7 @@ class CacheCozyTest extends TestCase {
 	// ── #7: single-flight — no overlapping warm renders ─────────────────────
 
 	public function test_run_tick_skips_when_a_warm_render_is_already_in_flight(): void {
-		$GLOBALS['_wp_test_home_url'] = 'https://www.client-347.example';
+		$GLOBALS['_wp_test_home_url'] = 'https://www.example.com';
 		set_transient( 'newspack_cache_cozy_lock', 1, 60 ); // prior tick holds the lock
 
 		Cache_Cozy::run_tick();
@@ -640,7 +640,7 @@ class CacheCozyTest extends TestCase {
 	}
 
 	public function test_run_tick_takes_and_releases_the_lock_on_a_clean_run(): void {
-		$GLOBALS['_wp_test_home_url'] = 'https://www.client-347.example';
+		$GLOBALS['_wp_test_home_url'] = 'https://www.example.com';
 
 		Cache_Cozy::run_tick();
 

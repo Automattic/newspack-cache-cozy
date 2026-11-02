@@ -30,7 +30,7 @@ class CacheCozyTickTest extends TestCase {
 		$GLOBALS['_wp_actions']          = [];
 		$GLOBALS['_wp_test_remote_gets'] = [];
 		$GLOBALS['_wp_transients']       = [];
-		$GLOBALS['_wp_test_home_url']    = 'https://www.client-347.example';
+		$GLOBALS['_wp_test_home_url']    = 'https://www.example.com';
 
 		$this->set_registered( false );
 		Event_Framework::reset();
