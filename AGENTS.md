@@ -1,11 +1,11 @@
 # AGENTS.md — Newspack Cache Cozy
 
-A small standalone WordPress plugin on the **newspack-nodes** substrate: a refresh-ahead cache warmer that keeps the homepage's caches hot out-of-band so no visitor pays the cold render. The substrate's own guide names it the minimal, fully-rigged *node-consuming plugin* — one node plus a drop-in, carrying each release essential as a real file to copy.
+A small standalone WordPress plugin on the **newspack-nodes** substrate: a refresh-ahead cache warmer that keeps the homepage's caches hot out-of-band so a visitor never pays the cold render. The substrate's own guide names it the minimal, fully-rigged *node-consuming plugin* — one node plus a drop-in, carrying each release essential as a real file to copy.
 
 Two pieces, one job:
 
 - **`Cache_Cozy_Tick_Node`** (`includes/class-cache-cozy-tick-node.php`) — the substrate side. A `Newspack_Nodes\Timer_Node` hitchhiking the `_router` heartbeat, enqueueing a `cache_cozy` job every `INTERVAL_SECONDS` (default 60). It registers the handler on `newspack_nodes/job_handlers`; the handler drops malformed jobs, drops jobs already a full interval old, and calls the warmer. One line adds it to a topology: `make_node Cache_Cozy_Tick cache-cozy:tick`.
-- **`01-newspack-cache-cozy.php`** (`mu-plugins/`) — the warmer itself, a self-contained drop-in (`Newspack_Cache_Cozy\Cache_Cozy` + `Cold_Read_Object_Cache`) depending on **no plugin**. On a secret-gated loopback it swaps the object cache for a cold-read decorator so allowlisted groups rebuild into live cache. Ships as a separate release asset, installed under `wp-content/mu-plugins/`, not `wp-content/plugins/`.
+- **`01-newspack-cache-cozy.php`** (`mu-plugins/`) — the warmer itself, a self-contained drop-in (`Newspack_Cache_Cozy\Cache_Cozy` + `Cold_Read_Object_Cache`) that does not depend on **any plugin**. On a secret-gated loopback it swaps the object cache for a cold-read decorator so allowlisted groups rebuild into live cache. Ships as a separate release asset, installed under `wp-content/mu-plugins/`, not `wp-content/plugins/`.
 
 The tick node's `handle_job` calls `\Newspack_Cache_Cozy\Cache_Cozy::run_tick()`, and no-ops loudly when the drop-in is missing. The halves are independent: the drop-in warms on its own cron with no substrate, and the tick node makes the cadence reliable (worker drain loop, not contended wp-cron).
 
@@ -46,7 +46,7 @@ cd tests && ../vendor/bin/phpunit --enforce-time-limit   # unit tests
 cd tests && ./run-coverage.sh                            # + clover under $TEST_TMP
 ```
 
-`phpunit.xml` sets no `defaultTimeLimit`, so `--enforce-time-limit` holds every test to PHPUnit's one second, and `failOnRisky="true"` beside `failOnWarning="true"` makes a breach fail the run rather than print `OK, but there were issues!`. `#[Medium]` and `#[Large]` are not the way back under the limit, and no class declares one: a test must not wait in real time — it drives a seam, as the substrate's `Core::$clock` and `Event_Framework::$sleep` are there for.
+`phpunit.xml` sets no `defaultTimeLimit`, so `--enforce-time-limit` holds every test to PHPUnit's one second, and `failOnRisky="true"` beside `failOnWarning="true"` makes a breach fail the run rather than print `OK, but there were issues!`. `#[Medium]` and `#[Large]` are not the way back under the limit, and none of the classes declares one: a test must not wait in real time — it drives a seam, as the substrate's `Core::$clock` and `Event_Framework::$sleep` are there for.
 
 `package.json` declares six lint scripts. Every plugin declares the same names whether or not it owns that file type, so the shared hooks can call them uniformly: `pre-push` runs `lint:php`, `lint:js` and `lint:scss`, each scoped to the file types the push touched, and `lint-staged` runs `lint:phpstan` on staged PHP and `shellcheck` on staged shell.
 
@@ -55,7 +55,7 @@ cd tests && ./run-coverage.sh                            # + clover under $TEST_
 | `lint:php` | `phpcs`, the vendored `scripts/Sniffs/WP/AbspathGuardSniff.php` among its rules, then `php scripts/lint-comments.php .` |
 | `lint:js` | `node scripts/lint-comments.mjs .`, then `node scripts/lint-contract.mjs` — this plugin ships no JS, so both gates read only the ADR contract and comment shape |
 | `lint:scss` | `true` — a no-op placeholder; no SCSS here |
-| `lint:shell` | `shellcheck scripts/pre-push scripts/pre-push.local scripts/*.sh` — the whole-tree pass; no hook calls it |
+| `lint:shell` | `shellcheck scripts/pre-push scripts/pre-push.local scripts/*.sh` — the whole-tree pass; the hooks never call it |
 | `lint:phpstan` | `vendor/bin/phpstan analyse -c phpstan-deadcode.neon` — the dead-code layer, which `includes` `phpstan.neon.dist` |
 | `lint:deadcode` | An alias for `lint:phpstan` |
 
@@ -135,7 +135,7 @@ Everything a site or an operator touches.
 | `password_protected_is_active` | warm request only | Lets the loopback reach the real homepage rather than an access gate |
 | `determine_current_user` (`PHP_INT_MAX`) | warm request only | Forces the warm render logged-OUT, or Newspack disables block caching and we rebuild but cache none |
 
-**Options and transients** (all deleted by `uninstall.php`): `newspack_cache_cozy_secret` (the loopback secret, minted on first read, non-autoloaded), `newspack_cache_cozy_auth` (the HTTP Basic credential, sodium-encrypted under a key derived from `wp_salt('auth')` and marked `$enc$`; clearing it stores `''`, which reads as no credential, and never deletes the row), and the `newspack_cache_cozy_lock` transient (single-flight, 60s, so a slow render cannot be lapped).
+**Options and transients** (all deleted by `uninstall.php`): `newspack_cache_cozy_secret` (the loopback secret, minted on first read, non-autoloaded), `newspack_cache_cozy_auth` (the HTTP Basic credential, sodium-encrypted under a key derived from `wp_salt('auth')` and marked `$enc$`; clearing it stores `''`, which reads as an unset credential, and never deletes the row), and the `newspack_cache_cozy_lock` transient (single-flight, 60s, so a slow render cannot be lapped).
 
 **wp-config constants:** `NEWSPACK_CACHE_COZY_COLD_GROUPS` overrides the cold-group list (default `newspack_blocks`, `transient`, `site-transient`); `NEWSPACK_CACHE_COZY_SSLVERIFY` opts a self-signed dev host out of TLS verification; `NEWSPACK_CACHE_COZY_AUTH` supplies the loopback credential from config rather than the DB, and wins over the option. `NEWSPACK_CACHE_COZY_SKIP_BOOT` is the tests' seam for loading the drop-in's classes without booting it.
 

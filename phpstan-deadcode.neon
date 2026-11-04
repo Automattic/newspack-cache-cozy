@@ -38,8 +38,8 @@ parameters:
             message: '#::(__construct|fill|fire|arguments|node_schema|dump_config)$#'
             path: includes/*.php
         # WordPress object-cache drop-in. Core calls every one of these through
-        # $GLOBALS['wp_object_cache'] (wp_cache_get and friends), which no
-        # static analysis of this repo can see.
+        # $GLOBALS['wp_object_cache'] (wp_cache_get and friends), which
+        # static analysis of this repo cannot see.
         -
             identifier: shipmonk.deadMethod
             message: '#Cold_Read_Object_Cache::#'

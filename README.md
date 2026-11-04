@@ -1,12 +1,12 @@
 # Newspack Cache Cozy
 
-A refresh-ahead cache warmer for the [newspack-nodes](../newspack-nodes/) substrate. It keeps the homepage's caches hot out-of-band, so no real visitor ever pays for a cold render.
+A refresh-ahead cache warmer for the [newspack-nodes](../newspack-nodes/) substrate. It keeps the homepage's caches hot out-of-band, so a real visitor never pays for a cold render.
 
 ## How it works
 
 Cache Cozy is two cooperating pieces:
 
-1. **The warmer drop-in** (`01-newspack-cache-cozy.php`, an `mu-plugin`). On each tick it fires a single secret-gated loopback request to the warmed path. During *that* request — and only that request — it swaps the object cache for a `Cold_Read_Object_Cache` decorator: reads on allowlisted "cold" groups (the block cache, transients) miss, forcing WordPress to rebuild them, while every write passes straight through to the real cache. The freshly rendered entries land in live cache under their own keys with a fresh timestamp. No key replication, no cold window. A 60-second lock transient keeps a slow render from being lapped. The drop-in depends on no plugin: WordPress loads it on every request, and it registers its own `newspack_cache_cozy_minute` cron recurrence so scheduling never waits on another plugin's interval.
+1. **The warmer drop-in** (`01-newspack-cache-cozy.php`, an `mu-plugin`). On each tick it fires a single secret-gated loopback request to the warmed path. During *that* request — and only that request — it swaps the object cache for a `Cold_Read_Object_Cache` decorator: reads on allowlisted "cold" groups (the block cache, transients) miss, forcing WordPress to rebuild them, while every write passes straight through to the real cache. The freshly rendered entries land in live cache under their own keys with a fresh timestamp. No key replication, no cold window. A 60-second lock transient keeps a slow render from being lapped. The drop-in does not depend on any plugin: WordPress loads it on every request, and it registers its own `newspack_cache_cozy_minute` cron recurrence so scheduling never waits on another plugin's interval.
 
 2. **The tick node** (`Cache_Cozy_Tick_Node`, a newspack-nodes `Timer_Node`). wp-cron is an unreliable trigger — it competes with every other minute-cron for a slot. Instead, this node rides a long-lived worker's drain loop: it hitchhikes the substrate's `_router` heartbeat and enqueues a `cache_cozy` job every interval. The job is dispatched on the substrate's `Job_Worker`, which isolates the blocking warm render (its own request id, GC cycle, timeout headroom) and keeps the worker's loop moving. Cadence is immune to cron contention.
 
@@ -16,7 +16,7 @@ The halves are independent, and neither schedules anything by itself. The tick n
 
 - PHP 8.2+
 - WordPress 6.5+
-- The **newspack-nodes** plugin, 0.54.0 or newer, active. `Requires Plugins: newspack-nodes` keeps the substrate on, and `Bootstrap::version_at_least( '0.54.0', … )` gates the wiring — too old a substrate leaves Cache Cozy dormant behind an admin notice, not a fatal. The drop-in depends on no plugin and warms without any of this.
+- The **newspack-nodes** plugin, 0.54.0 or newer, active. `Requires Plugins: newspack-nodes` keeps the substrate on, and `Bootstrap::version_at_least( '0.54.0', … )` gates the wiring — too old a substrate leaves Cache Cozy dormant behind an admin notice, not a fatal. The drop-in does not depend on any plugin and warms without any of this.
 
 ## Install
 

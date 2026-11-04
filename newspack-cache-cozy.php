@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Newspack Cache Cozy
- * Description: Refresh-ahead cache warmer for newspack-nodes — keeps the homepage's caches hot out-of-band so no visitor pays the cold render.
+ * Description: Refresh-ahead cache warmer for newspack-nodes — keeps the homepage's caches hot out-of-band so a visitor never pays the cold render.
  * Version: 0.6.5
  * Author: Automattic
  * Author URI: https://newspack.com/

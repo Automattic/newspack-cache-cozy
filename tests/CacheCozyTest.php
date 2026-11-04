@@ -2,9 +2,10 @@
 /**
  * Tests for Newspack_Cache_Cozy\Cache_Cozy (the standalone drop-in).
  *
- * The refresh-ahead warmer: keeps the homepage's caches hot out-of-band so no
- * visitor pays the cold render. Covers the host gate, cold groups, secret,
- * the drop-in-load cold-cache install, single-flight, and stats exclusion.
+ * The refresh-ahead warmer: keeps the homepage's caches hot out-of-band so a
+ * visitor never pays the cold render. Covers the host gate, cold groups,
+ * secret, the drop-in-load cold-cache install, single-flight, and stats
+ * exclusion.
  *
  * @package Newspack_Cache_Cozy
  */
