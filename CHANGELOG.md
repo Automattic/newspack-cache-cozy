@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.6] - 2026-11-03
+
 ### Changed
 
 - **The plugin description says its negative outright**, in the plugin file and the drop-in alike.
