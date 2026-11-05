@@ -6,7 +6,9 @@
          cacheDirectory="/tmp/phpunit-cache-newspack-cache-cozy"
          failOnWarning="true"
          failOnRisky="true"
-         beStrictAboutOutputDuringTests="false">
+         beStrictAboutOutputDuringTests="false"
+         enforceTimeLimit="true"
+         defaultTimeLimit="10">
     <testsuites>
         <testsuite name="Unit Tests">
             <directory>.</directory>
