@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- The release zip no longer carries `build-release.sh`, which a site served over HTTP.
+
 ## [0.6.7] - 2026-11-05
 
 ### Changed

@@ -18,6 +18,7 @@
 /tests
 /vendor
 AGENTS.md
+build-release.sh
 CHANGELOG.md
 CLAUDE.md
 cghooks.lock
