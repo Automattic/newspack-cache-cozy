@@ -25,16 +25,17 @@ OUT=/tmp
 # is wired for 10.x.
 PHPUNIT="$SCRIPT_DIR/../vendor/bin/phpunit"
 
-# Ensure xdebug coverage mode is enabled
-export XDEBUG_MODE=coverage
+# shellcheck disable=SC1091 # this plugin's vendored copy of the shared lib
+. "$SCRIPT_DIR/../scripts/lib/coverage-php.sh"
+coverage_php "$(dirname "$SCRIPT_DIR")"
 
 # Clean up any previous test artifacts
 rm -rf /tmp/newspack-cache-cozy-test 2>/dev/null
 
 # Run PHPUnit with coverage
-"$PHPUNIT" --configuration phpunit.xml \
-    --coverage-clover ${OUT}/newspack-cache-cozy-coverage/clover.xml \
-    --coverage-html ${OUT}/newspack-cache-cozy-coverage \
+"${COVERAGE_PHP[@]}" "$PHPUNIT" --configuration phpunit.xml \
+    --coverage-clover "${OUT}"/newspack-cache-cozy-coverage/clover.xml \
+    --coverage-html "${OUT}"/newspack-cache-cozy-coverage \
 	--enforce-time-limit \
     "$@"
 
