@@ -32,3 +32,4 @@ phpunit.xml
 README.md
 Thumbs.db
 WRITING-A-PLUGIN.md
+/phpstan-deadcode.neon
