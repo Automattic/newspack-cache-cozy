@@ -533,7 +533,7 @@ class Cache_Cozy {
 	}
 
 	/**
-	 * HTTP Basic credential for the loopback ("Basic …"), or '' when none.
+	 * HTTP Basic credential for the loopback ("Basic …"), or '' when it is unset.
 	 *
 	 * An authenticated loopback makes the edge/page cache forward to PHP instead
 	 * of serving a cached homepage. Read in the job-worker process (no password
