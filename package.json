@@ -27,6 +27,7 @@
 		"lint-staged": "^15.5.2"
 	},
 	"lint-staged": {
+		"*": "node scripts/lint-english.mjs",
 		"*.php": [
 			"./vendor/bin/phpcs",
 			"php scripts/reorder-node-methods.php --check",
