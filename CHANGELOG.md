@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.8] - 2026-11-06
+
 ### Changed
 
 - `tests/run-coverage.sh` runs under PCOV, through `scripts/lib/coverage-php.sh`. No runtime change.
