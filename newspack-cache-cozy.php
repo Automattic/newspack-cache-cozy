@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Newspack Cache Cozy
  * Description: Refresh-ahead cache warmer for newspack-nodes — keeps the homepage's caches hot out-of-band so a visitor never pays the cold render.
- * Version: 0.6.8
+ * Version: 0.6.9
  * Author: Automattic
  * Author URI: https://newspack.com/
  * License: GPL-2.0-or-later
@@ -18,7 +18,7 @@
 \defined( 'ABSPATH' ) || exit;
 
 if ( ! \defined( 'NEWSPACK_CACHE_COZY_VERSION' ) ) {
-	\define( 'NEWSPACK_CACHE_COZY_VERSION', '0.6.8' );
+	\define( 'NEWSPACK_CACHE_COZY_VERSION', '0.6.9' );
 }
 if ( ! \defined( 'NEWSPACK_CACHE_COZY_FILE' ) ) {
 	\define( 'NEWSPACK_CACHE_COZY_FILE', __FILE__ );
